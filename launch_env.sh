@@ -28,6 +28,10 @@ fi
 
 export STAGING_ROOT="/data/safe_staging"
 
+# Force Simplified Chinese UI on every boot.
+mkdir -p /data/params/d
+printf '%s' "zh-CHS" > /data/params/d/LanguageSetting
+
 # C3XL exposes the system D-Bus socket at /run/dbus.
 if [ -S /run/dbus/system_bus_socket ]; then
   export DBUS_SYSTEM_BUS_ADDRESS="unix:path=/run/dbus/system_bus_socket"
