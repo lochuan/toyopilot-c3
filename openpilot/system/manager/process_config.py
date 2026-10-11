@@ -51,7 +51,15 @@ def use_copyparty(started, params, CP: car.CarParams) -> bool:
 
 def lanlink_run(started: bool, params: Params, CP: car.CarParams) -> bool:
   # offroad+onroad 常驻：LAN 访问的价值恰在停车时
-  return params.get_bool("LanLinkEnabled")
+  if not params.get_bool("LanLinkEnabled"):
+    return False
+  try:
+    import sanic  # noqa: F401
+  except ImportError:
+    # C3XL system images may not ship sanic; don't keep respawning a broken
+    # lanlinkd just because the UI toggle is enabled.
+    return False
+  return True
 
 def bigmodeld_run(started: bool, params: Params, CP: car.CarParams) -> bool:
   # 07 号：「远程大模型」关闭时不启动上行进程，行为同 lean-master；默认关（同 AdbEnabled）
