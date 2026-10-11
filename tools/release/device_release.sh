@@ -19,7 +19,7 @@ set -Eeuo pipefail   # -E：ERR trap 继承进阶段函数
 
 BUILD=/data/build
 STAGE=/data/relstage
-REPO_URL=https://github.com/lochuan/lean-mici.git
+REPO_URL="${REPO_URL:-https://github.com/lochuan/lean-mici.git}"
 SRC_BRANCH="${SRC_BRANCH:-lean-master}"
 RELEASE_BRANCH="${RELEASE_BRANCH:-lean-release}"
 # 默认 2GB 会按 mtime 淘汰掉 ~71M 的 driving pkl，下次发版白编 ~11 分钟
