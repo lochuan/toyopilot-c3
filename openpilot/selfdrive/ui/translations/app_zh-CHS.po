@@ -2934,3 +2934,30 @@ msgstr "手机 NPU 服务器地址。当前："
 
 msgid "Auto-discover"
 msgstr "自动发现"
+
+msgid "VEHICLE"
+msgstr "车辆"
+
+msgid "HIGH"
+msgstr "高"
+
+msgid "TOGGLE"
+msgstr "切换"
+
+msgid "Speed-Dependent Self-Tune (Beta)"
+msgstr "随速自调（测试版）"
+
+msgid "service url"
+msgstr "服务地址"
+
+msgid "service disabled"
+msgstr "服务已禁用"
+
+msgid "enable lanlink"
+msgstr "启用局域网连接"
+
+msgid "lanlink"
+msgstr "局域网连接"
+
+msgid "Failed to get available branches. Ensure you're connected to the internet and try again."
+msgstr "获取可用分支失败。请确认网络已连接后重试。"

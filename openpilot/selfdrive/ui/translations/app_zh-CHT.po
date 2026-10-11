@@ -897,3 +897,24 @@ msgstr "手機 NPU 伺服器位址。目前："
 
 msgid "Auto-discover"
 msgstr "自動探索"
+
+msgid "TOGGLE"
+msgstr "切換"
+
+msgid "Speed-Dependent Self-Tune (Beta)"
+msgstr "隨速自調（測試版）"
+
+msgid "service url"
+msgstr "服務網址"
+
+msgid "service disabled"
+msgstr "服務已停用"
+
+msgid "enable lanlink"
+msgstr "啟用區域網路連線"
+
+msgid "lanlink"
+msgstr "區域網路連線"
+
+msgid "Failed to get available branches. Ensure you're connected to the internet and try again."
+msgstr "取得可用分支失敗。請確認網路已連線後重試。"
