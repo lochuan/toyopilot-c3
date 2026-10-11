@@ -10,7 +10,7 @@ from openpilot.common.hardware import HARDWARE
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.lib.multilang import tr
 from openpilot.system.ui.sunnypilot.widgets.list_view import option_item_sp, multiple_button_item_sp, button_item_sp, \
-  dual_button_item_sp, Spacer
+  dual_button_item_sp, toggle_item_sp, Spacer
 from openpilot.system.ui.widgets import DialogResult
 from openpilot.system.ui.widgets.button import ButtonStyle
 from openpilot.system.ui.widgets.confirm_dialog import alert_dialog, ConfirmDialog
@@ -84,6 +84,12 @@ class DeviceLayoutSP(DeviceLayout):
     self._quiet_mode_btn = button_item_sp(lambda: tr("Quiet Mode"), lambda: tr("TOGGLE"),
                                           callback=lambda: ui_state.params.put_bool("QuietMode", not ui_state.params.get_bool("QuietMode")))
 
+
+    self._bluetooth_toggle = toggle_item_sp(
+      tr("Bluetooth"),
+      tr("Enable Bluetooth audio and accessories. Requires the Bluetooth-enabled system image."),
+      param="BluetoothEnabled",
+    )
     self._reg_and_training = dual_button_item_sp(
       left_text=lambda: tr("Regulatory"),
       left_callback=self._on_regulatory,
@@ -116,6 +122,7 @@ class DeviceLayoutSP(DeviceLayout):
       self._max_time_offroad,
       LineSeparator(height=10),
       self._quiet_mode_btn,
+      self._bluetooth_toggle,
       self._reg_and_training,
       self._reset_settings_btn,
       Spacer(10),
