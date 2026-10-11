@@ -219,7 +219,7 @@ class HomeLayout(Widget):
     if ui_state.bigmodel_enabled:
       green = npu_color(ui_state.started, ui_state.bigmodel_link_state) == "green"
       npu_path = "icons_mici/NPU_GREEN.png" if green else "icons_mici/NPU_ORANGE.png"
-      npu_tex = gui_app.texture(npu_path, 54, 40)
+      npu_tex = gui_app.texture(npu_path, 108, 80)
       rl.draw_texture_ex(npu_tex,
                          rl.Vector2(int(self.content_rect.x + self.content_rect.width - npu_tex.width - 24),
                                     int(self.content_rect.y + 24)), 0.0, 1.0, rl.WHITE)

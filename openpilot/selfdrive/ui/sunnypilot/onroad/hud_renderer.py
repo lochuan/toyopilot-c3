@@ -36,8 +36,8 @@ class HudRendererSP(HudRenderer):
     self.circular_alerts_renderer = CircularAlertsRenderer()
     self.speed_renderer = SpeedRenderer()
     self._torque_bar = TorqueBar(scale=3.0, always=True)
-    self._npu_green = gui_app.texture("icons_mici/NPU_GREEN.png", 54, 40)
-    self._npu_orange = gui_app.texture("icons_mici/NPU_ORANGE.png", 54, 40)
+    self._npu_green = gui_app.texture("icons_mici/NPU_GREEN.png", 108, 80)
+    self._npu_orange = gui_app.texture("icons_mici/NPU_ORANGE.png", 108, 80)
 
     self.pcm_cruise_speed: bool = True
     self.show_icbm_status: bool = False
