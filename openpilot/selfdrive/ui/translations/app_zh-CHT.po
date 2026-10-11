@@ -145,6 +145,10 @@ msgstr "變更語言"
 msgid "Changing this setting will restart sunnypilot if the car is powered on."
 msgstr ""
 
+#: system/ui/sunnypilot/widgets/sunnylink_pairing_dialog.py
+msgid "Choose your sponsorship tier and confirm your support"
+msgstr ""
+
 #: openpilot/selfdrive/ui/widgets/pairing_dialog.py
 msgid "Click \"add new device\" and scan the QR code on the right"
 msgstr "點選「新增裝置」，掃描右側 QR 碼"
@@ -228,6 +232,10 @@ msgstr "ETH"
 #: openpilot/selfdrive/ui/widgets/exp_mode_button.py
 msgid "EXPERIMENTAL MODE ON"
 msgstr "實驗模式已開啟"
+
+#: system/ui/sunnypilot/widgets/sunnylink_pairing_dialog.py
+msgid "Early Access: Become a sunnypilot Sponsor"
+msgstr ""
 
 #: openpilot/selfdrive/ui/layouts/settings/developer.py
 #: openpilot/selfdrive/ui/layouts/settings/toggles.py
@@ -318,6 +326,10 @@ msgstr "資料洪流"
 msgid "Firehose Mode"
 msgstr "Firehose 模式"
 
+#: system/ui/sunnypilot/widgets/sunnylink_pairing_dialog.py
+msgid "Follow the prompts to complete the pairing process"
+msgstr ""
+
 #: system/ui/widgets/network.py
 msgid "Forget"
 msgstr "忘記"
@@ -350,9 +362,17 @@ msgstr "安裝"
 msgid "IP Address"
 msgstr "IP 位址"
 
+#: system/ui/sunnypilot/widgets/sunnylink_pairing_dialog.py
+msgid "If sponsorship status was not updated, please contact a moderator on the community forum at https://community.sunnypilot.ai"
+msgstr ""
+
 #: openpilot/selfdrive/ui/layouts/settings/software.py
 msgid "Install Update"
 msgstr "安裝更新"
+
+#: system/ui/sunnypilot/widgets/sunnylink_pairing_dialog.py
+msgid "Join our Community Forum at https://community.sunnypilot.ai and reach out to a moderator if you have issues"
+msgstr ""
 
 #: openpilot/selfdrive/ui/layouts/settings/developer.py
 msgid "Joystick Debug Mode"
@@ -365,6 +385,10 @@ msgstr "載入中"
 #: openpilot/selfdrive/ui/layouts/sidebar.py
 msgid "LTE"
 msgstr "LTE"
+
+#: openpilot/selfdrive/ui/layouts/settings/developer.py
+msgid "Lateral Maneuver Mode"
+msgstr ""
 
 #: openpilot/selfdrive/ui/layouts/settings/developer.py
 msgid "Longitudinal Maneuver Mode"
@@ -440,6 +464,10 @@ msgstr "配對裝置"
 msgid "Pair device"
 msgstr "配對裝置"
 
+#: system/ui/sunnypilot/widgets/sunnylink_pairing_dialog.py
+msgid "Pair your GitHub account"
+msgstr ""
+
 #: openpilot/selfdrive/ui/widgets/pairing_dialog.py
 msgid "Pair your device to your comma account"
 msgstr "將裝置配對至您的 comma 帳號"
@@ -484,6 +512,10 @@ msgstr "重設"
 #: openpilot/selfdrive/ui/layouts/settings/device.py
 msgid "REVIEW"
 msgstr "檢視"
+
+#: system/ui/sunnypilot/widgets/sunnylink_pairing_dialog.py
+msgid "Re-enter the \"sunnylink\" panel to verify sponsorship status"
+msgstr ""
 
 #: openpilot/selfdrive/ui/layouts/settings/device.py
 msgid "Reboot"
@@ -552,6 +584,14 @@ msgstr "選取"
 #: openpilot/selfdrive/ui/layouts/settings/developer.py
 msgid "SSH Keys"
 msgstr "SSH 金鑰"
+
+#: system/ui/sunnypilot/widgets/sunnylink_pairing_dialog.py
+msgid "Scan the QR code to login to your GitHub account"
+msgstr ""
+
+#: system/ui/sunnypilot/widgets/sunnylink_pairing_dialog.py
+msgid "Scan the QR code to visit sunnyhaibin's GitHub Sponsors page"
+msgstr ""
 
 #: system/ui/widgets/network.py
 msgid "Scanning Wi-Fi networks..."
@@ -831,3 +871,29 @@ msgstr "✓ 已訂閱"
 msgid "🔥 Firehose Mode 🔥"
 msgstr "🔥 Firehose 模式 🔥"
 
+msgid "Bluetooth"
+msgstr "藍牙"
+
+msgid "Enable Bluetooth audio and accessories. Requires the Bluetooth-enabled system image."
+msgstr "啟用藍牙音訊和配件。需要帶藍牙的系統映像。"
+
+msgid "Chipmunk"
+msgstr "Chipmunk"
+
+msgid "Use the phone NPU for the remote big model. Enable this while offroad, then start the phone app."
+msgstr "使用手機 NPU 執行遠端大模型。請在停車時啟用，然後啟動手機 App。"
+
+msgid "Chipmunk Server"
+msgstr "Chipmunk 伺服器"
+
+msgid "Phone NPU server address. Leave empty to discover it automatically."
+msgstr "手機 NPU 伺服器位址。留空則自動探索。"
+
+msgid "Enter the phone IP, or leave empty for auto-discovery"
+msgstr "輸入手機 IP，留空則自動探索"
+
+msgid "Phone NPU server address. Current: "
+msgstr "手機 NPU 伺服器位址。目前："
+
+msgid "Auto-discover"
+msgstr "自動探索"
