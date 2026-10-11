@@ -311,7 +311,9 @@ def hardware_thread(end_event, hw_queue) -> None:
     # - TIZI, or
     # - TICI and channel_type is "tici"
     build_metadata = get_build_metadata()
-    # C3XL reports the "tici" devicetree model, so do not apply the official\n    # comma three branch-name restriction to this hardware.\n    is_unsupported_combo = False
+    # C3XL reports the "tici" devicetree model, so do not apply the official
+    # comma three branch-name restriction to this hardware.
+    is_unsupported_combo = False
     startup_conditions["not_tici"] = not is_unsupported_combo
     onroad_conditions["not_tici"] = not is_unsupported_combo
     set_offroad_alert("Offroad_TiciSupport", is_unsupported_combo, extra_text=build_metadata.channel)
