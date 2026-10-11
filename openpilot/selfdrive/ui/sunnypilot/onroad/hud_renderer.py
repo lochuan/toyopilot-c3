@@ -16,7 +16,6 @@ from openpilot.selfdrive.ui.sunnypilot.onroad.turn_signal import TurnSignalContr
 from openpilot.selfdrive.ui.sunnypilot.onroad.circular_alerts import CircularAlertsRenderer
 from openpilot.selfdrive.ui.sunnypilot.onroad.speed_renderer import SpeedRenderer
 from openpilot.selfdrive.ui.ui_state import ui_state, UIStatus
-from openpilot.selfdrive.ui.sunnypilot.npu_state import npu_color
 from openpilot.selfdrive.ui.onroad.hud_renderer import HudRenderer, UI_CONFIG, FONT_SIZES, COLORS, CRUISE_DISABLED_CHAR
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.lib.multilang import tr
@@ -36,8 +35,6 @@ class HudRendererSP(HudRenderer):
     self.circular_alerts_renderer = CircularAlertsRenderer()
     self.speed_renderer = SpeedRenderer()
     self._torque_bar = TorqueBar(scale=3.0, always=True)
-    self._npu_green = gui_app.texture("icons_mici/NPU_GREEN.png", 108, 80)
-    self._npu_orange = gui_app.texture("icons_mici/NPU_ORANGE.png", 108, 80)
 
     self.pcm_cruise_speed: bool = True
     self.show_icbm_status: bool = False
@@ -144,6 +141,3 @@ class HudRendererSP(HudRenderer):
     self.circular_alerts_renderer.render(rect)
     self.rocket_fuel.render(rect, ui_state.sm)
 
-    if ui_state.bigmodel_enabled:
-      npu_tex = self._npu_green if npu_color(ui_state.started, ui_state.bigmodel_link_state) == "green" else self._npu_orange
-      rl.draw_texture_ex(npu_tex, rl.Vector2(rect.x + rect.width - npu_tex.width - 20, rect.y + 20), 0.0, 1.0, rl.WHITE)

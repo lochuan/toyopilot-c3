@@ -5,8 +5,6 @@ from enum import IntEnum
 from openpilot.common.params import Params
 from openpilot.selfdrive.ui.widgets.offroad_alerts import UpdateAlert, OffroadAlert
 from openpilot.selfdrive.ui.widgets.exp_mode_button import ExperimentalModeButton
-from openpilot.selfdrive.ui.ui_state import ui_state
-from openpilot.selfdrive.ui.sunnypilot.npu_state import npu_color
 from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.lib.application import gui_app, FontWeight, MousePos, TextAlignment
 from openpilot.system.ui.lib.multilang import tr, trn
@@ -216,13 +214,6 @@ class HomeLayout(Widget):
     banner_y = int(tag_y + tag_size.y + gap_b)
     rl.draw_texture_ex(self._home_banner, rl.Vector2(int(cx - banner_w / 2), banner_y), 0, 1.0, rl.WHITE)
 
-    if ui_state.bigmodel_enabled:
-      green = npu_color(ui_state.started, ui_state.bigmodel_link_state) == "green"
-      npu_path = "icons_mici/NPU_GREEN.png" if green else "icons_mici/NPU_ORANGE.png"
-      npu_tex = gui_app.texture(npu_path, 108, 80)
-      rl.draw_texture_ex(npu_tex,
-                         rl.Vector2(int(self.content_rect.x + self.content_rect.width - npu_tex.width - 24),
-                                    int(self.content_rect.y + 24)), 0.0, 1.0, rl.WHITE)
 
   def _render_update_view(self):
     self.update_alert.render(self.content_rect)

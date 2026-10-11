@@ -9,6 +9,7 @@ from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.widgets import Widget
 
 from openpilot.selfdrive.ui.sunnypilot.layouts.sidebar import SidebarSP
+from openpilot.selfdrive.ui.sunnypilot.npu_state import npu_color
 
 SIDEBAR_WIDTH = 300
 METRIC_HEIGHT = 126
@@ -79,6 +80,9 @@ class Sidebar(Widget, SidebarSP):
     self._flag_img = gui_app.texture("images/button_flag.png", HOME_BTN.width, HOME_BTN.height)
     self._settings_img = gui_app.texture("images/button_settings.png", SETTINGS_BTN.width, SETTINGS_BTN.height)
     self._mic_img = gui_app.texture("icons/microphone.png", 30, 30)
+    self._npu_green = gui_app.texture("icons_mici/NPU_GREEN.png", 108, 80)
+    self._npu_orange = gui_app.texture("icons_mici/NPU_ORANGE.png", 108, 80)
+    self._npu_gray = gui_app.texture("icons_mici/NPU.png", 108, 80)
     self._mic_indicator_rect = rl.Rectangle(0, 0, 0, 0)
     self._font_regular = gui_app.font(FontWeight.NORMAL)
     self._font_bold = gui_app.font(FontWeight.SEMI_BOLD)
@@ -200,7 +204,11 @@ class Sidebar(Widget, SidebarSP):
     if gui_app.sunnypilot_ui():
       metrics, start_y, spacing = SidebarSP._draw_metrics(self, rect, self._temp_status, self._panda_status, self._connect_status)
       for idx, metric in enumerate(metrics):
-        self._draw_metric(rect, metric, start_y + idx * spacing)
+        y = start_y + idx * spacing
+        if idx == 2:
+          self._draw_npu_metric(rect, y)
+        else:
+          self._draw_metric(rect, metric, y)
 
       return
 
@@ -208,6 +216,24 @@ class Sidebar(Widget, SidebarSP):
 
     for metric, y_offset in metrics:
       self._draw_metric(rect, metric, rect.y + y_offset)
+
+  def _draw_npu_metric(self, rect: rl.Rectangle, y: float):
+    metric_rect = rl.Rectangle(rect.x + METRIC_MARGIN, y, METRIC_WIDTH, METRIC_HEIGHT)
+    if ui_state.bigmodel_enabled:
+      green = npu_color(ui_state.started, ui_state.bigmodel_link_state) == "green"
+      icon = self._npu_green if green else self._npu_orange
+      edge_color = Colors.GOOD if green else Colors.WARNING
+    else:
+      icon = self._npu_gray
+      edge_color = Colors.GRAY
+
+    edge_rect = rl.Rectangle(metric_rect.x + 4, metric_rect.y + 4, 100, 118)
+    rl.begin_scissor_mode(int(metric_rect.x + 4), int(metric_rect.y), 18, int(metric_rect.height))
+    rl.draw_rectangle_rounded(edge_rect, 0.3, 10, edge_color)
+    rl.end_scissor_mode()
+    rl.draw_rectangle_rounded_lines_ex(metric_rect, 0.3, 10, 2, Colors.METRIC_BORDER)
+    rl.draw_texture_ex(icon, rl.Vector2(metric_rect.x + (metric_rect.width - icon.width) / 2,
+                                       metric_rect.y + (metric_rect.height - icon.height) / 2), 0.0, 1.0, rl.WHITE)
 
   def _draw_metric(self, rect: rl.Rectangle, metric: MetricData, y: float):
     metric_rect = rl.Rectangle(rect.x + METRIC_MARGIN, y, METRIC_WIDTH, METRIC_HEIGHT)
