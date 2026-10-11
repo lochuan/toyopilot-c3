@@ -17,6 +17,7 @@ from openpilot.system.ui.lib.multilang import tr
 from openpilot.system.ui.widgets import DialogResult
 from openpilot.system.ui.widgets.confirm_dialog import ConfirmDialog
 from openpilot.system.ui.widgets.list_view import button_item
+from openpilot.system.ui.widgets.keyboard import Keyboard
 
 from openpilot.system.ui.sunnypilot.widgets.html_render import HtmlModalSP
 from openpilot.system.ui.sunnypilot.widgets.list_view import toggle_item_sp
@@ -30,6 +31,7 @@ class DeveloperLayoutSP(DeveloperLayout):
     self.error_log_path = os.path.join(Paths.crash_log_root(), "error.log")
     self._is_release_branch: bool = self._is_release or ui_state.params.get_bool("IsReleaseSpBranch")
     self._is_development_branch: bool = ui_state.params.get_bool("IsTestedBranch") or ui_state.params.get_bool("IsDevelopmentBranch")
+    self._bigmodel_keyboard = Keyboard(min_text_size=0)
     self._initialize_items()
 
     for item in self.items:
@@ -52,7 +54,19 @@ class DeveloperLayoutSP(DeveloperLayout):
 
     self.error_log_btn = button_item(tr("Error Log"), tr("VIEW"), tr("View the error log for sunnypilot crashes."), callback=self._on_error_log_clicked)
 
-    self.items: list = [self.show_advanced_controls, self.enable_github_runner_toggle, self.enable_copyparty_toggle, self.prebuilt_toggle, self.error_log_btn,]
+    self.bigmodel_toggle = toggle_item_sp(
+      tr("Chipmunk"),
+      tr("Use the phone NPU for the remote big model. Enable this while offroad, then start the phone app."),
+      param="BigmodelToggle",
+    )
+    self.bigmodel_host_btn = button_item(
+      tr("Chipmunk Server"),
+      tr("EDIT"),
+      tr("Phone NPU server address. Leave empty to discover it automatically."),
+      callback=self._edit_bigmodel_host,
+    )
+
+    self.items: list = [self.show_advanced_controls, self.bigmodel_toggle, self.bigmodel_host_btn, self.enable_github_runner_toggle, self.enable_copyparty_toggle, self.prebuilt_toggle, self.error_log_btn,]
 
   @staticmethod
   def _on_prebuilt_toggled(state):
@@ -84,6 +98,23 @@ class DeveloperLayoutSP(DeveloperLayout):
     dialog = HtmlModalSP(text=text, callback=lambda result: self._on_error_log_closed(result, os.path.exists(self.error_log_path)))
     gui_app.push_widget(dialog)
 
+  def _edit_bigmodel_host(self):
+    def update_host(result):
+      if result != DialogResult.CONFIRM:
+        return
+      host = self._bigmodel_keyboard.text.strip()
+      if host:
+        ui_state.params.put("BigmodelServerHost", host, block=True)
+      else:
+        ui_state.params.remove("BigmodelServerHost")
+
+    current = ui_state.params.get("BigmodelServerHost") or ""
+    self._bigmodel_keyboard.reset(min_text_size=0)
+    self._bigmodel_keyboard.set_title(tr("Chipmunk Server"), tr("Enter the phone IP, or leave empty for auto-discovery"))
+    self._bigmodel_keyboard.set_text(current)
+    self._bigmodel_keyboard.set_callback(update_host)
+    gui_app.push_widget(self._bigmodel_keyboard)
+
   def _update_state(self):
     disable_updates = ui_state.params.get_bool("DisableUpdates")
     show_advanced = ui_state.params.get_bool("ShowAdvancedControls")
@@ -104,3 +135,5 @@ class DeveloperLayoutSP(DeveloperLayout):
     self.enable_copyparty_toggle.set_visible(show_advanced)
     self.enable_github_runner_toggle.set_visible(show_advanced and not self._is_release_branch)
     self.error_log_btn.set_visible(not self._is_release_branch)
+    host = ui_state.params.get("BigmodelServerHost") or tr("Auto-discover")
+    self.bigmodel_host_btn.set_description(tr("Phone NPU server address. Current: ") + host)
