@@ -38,6 +38,10 @@ class DeviceLayoutSP(DeviceLayout):
     DeviceLayout.__init__(self)
     self._scroller._line_separator = None
 
+  def _on_review_training_guide(self):
+    # C3XL test: the training guide is not wired into this fork's device panel yet.
+    pass
+
   def _initialize_items(self):
     DeviceLayout._initialize_items(self)
 
