@@ -12,16 +12,16 @@
 # 产出: /data/relstage（单孤儿 commit 的 git 仓库，分支 $RELEASE_BRANCH），由 Mac 侧取走推送。
 #
 # 分支参数（环境变量，缺省 = 主线发版）:
-#   SRC_BRANCH     源分支，缺省 lean-master
-#   RELEASE_BRANCH 发布分支，缺省 lean-release
-# 例: SRC_BRANCH=big-uplink RELEASE_BRANCH=big-release bash device_release.sh
+#   SRC_BRANCH     源分支，缺省 c3xl-lean
+#   RELEASE_BRANCH 发布分支，缺省 release
+# 例: SRC_BRANCH=c3xl-lean RELEASE_BRANCH=release bash device_release.sh
 set -Eeuo pipefail   # -E：ERR trap 继承进阶段函数
 
 BUILD=/data/build
 STAGE=/data/relstage
-REPO_URL="${REPO_URL:-https://github.com/lochuan/lean-mici.git}"
-SRC_BRANCH="${SRC_BRANCH:-lean-master}"
-RELEASE_BRANCH="${RELEASE_BRANCH:-lean-release}"
+REPO_URL="${REPO_URL:-https://gitee.com/lochuan/toyo-pilot-c3-xl.git}"
+SRC_BRANCH="${SRC_BRANCH:-c3xl-lean}"
+RELEASE_BRANCH="${RELEASE_BRANCH:-release}"
 # 默认 2GB 会按 mtime 淘汰掉 ~71M 的 driving pkl，下次发版白编 ~11 分钟
 SCONS_CACHE_LIMIT=8e9
 export PATH="/usr/local/venv/bin:$PATH"
@@ -58,7 +58,7 @@ run_stage() {
 }
 
 wake_cpu_cores() {
-  # mici 省电时 4~7 号核下线；scons -j8 与 pkl 编译的 taskset -c 4 都要它们在线
+  # 省电时 4~7 号核可能下线；scons -j8 与 pkl 编译的 taskset -c 4 都要它们在线
   local n
   for n in 4 5 6 7; do
     if [ "$(cat /sys/devices/system/cpu/cpu$n/online 2>/dev/null)" = "0" ]; then
