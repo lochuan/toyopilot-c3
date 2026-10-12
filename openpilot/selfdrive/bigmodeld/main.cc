@@ -289,6 +289,7 @@ class Bigmodeld {
     VisionStreamType type = sid == kRoad ? VISION_STREAM_NARROW_ROAD : VISION_STREAM_WIDE_ROAD;
     VisionIpcClient vipc("camerad", type, false);
     chipmunk::WarpLut warp_lut;  // 本线程独占：标定不变时每帧只按表取像素
+    bool src_size_mismatch_logged = false;  // 尺寸不符每路只报一次，不刷屏
     bool inited = false;
 
     while (!do_exit) {
@@ -307,6 +308,15 @@ class Bigmodeld {
         // 上游覆盖/滞后（缓冲被新帧顶掉）：不进编码器；后续 SOF 可形成时间槽空洞
         if (buf->get_frame_id() != extra.frame_id) continue;
         const uint64_t recv_ns = nanos_since_boot();
+        // 内参常量只对 tici 1928×1208 成立：尺寸不符宁可不出帧，也不送错位几何给大模型
+        if ((int)buf->width != chipmunk::kWarpSrcW || (int)buf->height != chipmunk::kWarpSrcH) {
+          if (!src_size_mismatch_logged) {
+            LOGE("bigmodeld: %s 源尺寸 %zux%zu ≠ %dx%d，内参不匹配，丢帧", sid == kRoad ? "road" : "wide",
+                 buf->width, buf->height, chipmunk::kWarpSrcW, chipmunk::kWarpSrcH);
+            src_size_mismatch_logged = true;
+          }
+          continue;
+        }
         // warp 进编码缓冲后立即可放回 VisionIPC 缓冲（配对等待不占上游缓冲）
         VisionBuf* dst = ctx_[sid].pool.acquire();
         float mat[9];

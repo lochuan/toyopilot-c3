@@ -16,8 +16,8 @@
 
 namespace chipmunk {
 
-constexpr int kWarpSrcW = 1344;               // 相机 NV12 宽
-constexpr int kWarpSrcH = 760;                // 相机 NV12 高
+constexpr int kWarpSrcW = 1928;               // 相机 NV12 宽（tici ox03c10，与 frame_meta 内参同源）
+constexpr int kWarpSrcH = 1208;               // 相机 NV12 高
 constexpr int kModelW = 512, kModelH = 256;   // 单路模型输入
 constexpr int kPackW = kModelW / 2;           // 每平面 256
 constexpr int kPackH = kModelH / 2;           // 每平面 128

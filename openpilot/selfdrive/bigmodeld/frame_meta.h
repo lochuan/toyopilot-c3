@@ -27,9 +27,9 @@
 // 输出 3×3 行主序 f32。rpy = [roll, pitch, yaw]（extrinsicsCalibration.rpyCalib）。
 void get_warp_matrix(const float rpy[3], const float intrinsics[9], bool bigmodel_frame, float out[9]);
 
-// 相机内参常量：openpilot/common/transformations/camera.py 的 _os_config
-//（os04c10，1344×760：narrow_road fl=1522*3/4、wide_road=_os_fisheye fl=567/4*3；
-// 与 16 号两路取流分辨率 1344×760 同源）
+// 相机内参常量：openpilot/common/transformations/camera.py 的 _ar_ox_config
+//（本分支只适配 comma tici：ox03c10，1928×1208：narrow_road fl=2648、wide_road=_ar_ox_fisheye fl=567；
+// 与 camerad 两路出图 1928×1208 = warp_pack.h kWarpSrcW/H 同源，capture 按此校验源尺寸）
 extern const float kNarrowRoadIntrinsics[9];
 extern const float kWideRoadIntrinsics[9];
 

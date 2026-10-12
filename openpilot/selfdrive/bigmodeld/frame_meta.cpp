@@ -68,11 +68,11 @@ const double kSbigmodelIntrinsics[9] = {455, 0, 256,
 
 }  // namespace
 
-const float kNarrowRoadIntrinsics[9] = {1141.5f, 0.f, 672.f,
-                                        0.f, 1141.5f, 380.f,
+const float kNarrowRoadIntrinsics[9] = {2648.f, 0.f, 964.f,
+                                        0.f, 2648.f, 604.f,
                                         0.f, 0.f, 1.f};
-const float kWideRoadIntrinsics[9] = {425.25f, 0.f, 672.f,
-                                      0.f, 425.25f, 380.f,
+const float kWideRoadIntrinsics[9] = {567.f, 0.f, 964.f,
+                                      0.f, 567.f, 604.f,
                                       0.f, 0.f, 1.f};
 
 void get_warp_matrix(const float rpy[3], const float intrinsics[9], bool bigmodel_frame, float out[9]) {

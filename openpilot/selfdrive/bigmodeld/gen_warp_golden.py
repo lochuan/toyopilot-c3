@@ -3,11 +3,11 @@
 （openpilot/common/transformations/model.py:65-70）算出若干 rpyCalib 样本的
 warp_road/warp_wide，输出 C++ 表，粘进 test_bigmodeld.cc 做 ≤1e-5 对照。
 
-内参取 DEVICE_CAMERAS[('mici','os04c10')]（C4 的 os04c10 两路，1344×760），
+内参取 DEVICE_CAMERAS[('tici','ox03c10')]（tici 的 ox03c10 两路，1928×1208），
 并与 frame_meta.cpp 的 kNarrowRoadIntrinsics/kWideRoadIntrinsics 核对。
 
-用法（1b-model-qnn 项目 venv 的 numpy；仓库根目录跑）：
-  /Users/kevin/Documents/Projects/1b-model-qnn/.venv/bin/python \
+用法（sunnypilot 项目 venv 的 numpy；仓库根目录跑）：
+  /Users/kevin/Documents/Projects/sunnypilot/.venv/bin/python \
       openpilot/selfdrive/bigmodeld/gen_warp_golden.py
 """
 from __future__ import annotations
@@ -45,7 +45,7 @@ def fmt(x: float) -> str:
 
 
 def main() -> int:
-    dc = DEVICE_CAMERAS[("mici", "os04c10")]
+    dc = DEVICE_CAMERAS[("tici", "ox03c10")]
     narrow = dc.narrow_road.intrinsics
     wide = dc.wide_road.intrinsics
 
@@ -53,7 +53,7 @@ def main() -> int:
     print("// 数值口径：rpy 按 float32 取值（与 extrinsicsCalibration.rpyCalib 同）后以 double 精度")
     print("// 算同一公式（rot_from_euler + matmul + inv），与 frame_meta.cpp 的 double 实现对得上；")
     print("// modeld 实际路径的 float32 中间精度另带 ~3e-5 绝对噪声（相对 ~1e-7），不进本判据。")
-    print(f"// 内参（DEVICE_CAMERAS[('mici','os04c10')]）：narrow fl={dc.narrow_road.focal_length} "
+    print(f"// 内参（DEVICE_CAMERAS[('tici','ox03c10')]）：narrow fl={dc.narrow_road.focal_length} "
           f"wide fl={dc.wide_road.focal_length} size={dc.narrow_road.size}")
     print("struct WarpGolden { float rpy[3]; float road[9]; float wide[9]; };")
     print("static const WarpGolden kWarpGolden[] = {")

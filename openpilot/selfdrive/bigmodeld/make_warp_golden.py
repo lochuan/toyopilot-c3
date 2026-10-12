@@ -19,7 +19,7 @@ TINYGRAD = '/Users/kevin/Documents/Projects/tinygrad'
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
 LM = os.path.join(REPO, 'openpilot/selfdrive/modeld/compile_modeld.py')
-W, H, MW, MH = 1344, 760, 512, 256
+W, H, MW, MH = 1344, 760, 512, 256  # fixture 几何，与相机型号无关（test_warp_golden.cc kW/kH 同值）
 PW, PH = MW // 2, MH // 2
 
 MATS = {

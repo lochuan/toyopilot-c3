@@ -61,8 +61,9 @@ VisionIPC 取 road（`VISION_STREAM_NARROW_ROAD`）/wide（`VISION_STREAM_WIDE_R
    device_frame_from_view_frame.T）；R = rot_from_euler（Z-Y-X，Rz@Ry@Rx）。
    road 用 medmodel K（910,0,256;0,910,47.6，bigmodel_frame=false）、wide 用 sbig
    （455,0,256;0,455,151.8，true）（`model.py:65-70` + `modeld.py:326-333`）。内参常量=
-   os04c10（`camera.py:52` _os_config）：narrow fl=1141.5、wide fl=425.25、1344×760→cx 672/
-   cy 380——与 frame_meta.cpp 常量逐位一致（gen_warp_golden.py 尾部注释对读）。
+   tici ox03c10（`camera.py` _ar_ox_config，本分支只适配 tici）：narrow fl=2648、wide fl=567、
+   1928×1208→cx 964/cy 604——与 frame_meta.cpp 常量逐位一致（gen_warp_golden.py 尾部注释对读）；
+   capture 校验源帧须为 1928×1208（warp_pack.h kWarpSrcW/H），不符即丢帧报错。
    golden 口径：rpy 按 float32 取值再以 double 精度算同公式；**modeld 的 float32 中间路径
    另带 ~2.7e-5 噪声（相对 ~1e-7），实测超 1e-5 判据，故 golden 走 double 路径**，判据 ≤1e-5。
 5. **编码**：EncoderInfo 自带 get_settings（FULL_H_E_V_C、bitrate 初值 = `--bitrate`/
@@ -125,7 +126,7 @@ MetaCache（查不到不弹队、clean2 回归、miss 分类）、序列头门�
 avahi 行解析/子网范围/发现节流（06 号）。golden 表生成（输出粘进 test_bigmodeld.cc）：
 
 ```sh
-/Users/kevin/Documents/Projects/1b-model-qnn/.venv/bin/python \
+/Users/kevin/Documents/Projects/sunnypilot/.venv/bin/python \
     openpilot/selfdrive/bigmodeld/gen_warp_golden.py
 ```
 

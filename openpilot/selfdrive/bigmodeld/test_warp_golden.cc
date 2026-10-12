@@ -10,7 +10,8 @@
 
 using namespace chipmunk;
 
-constexpr int kW = kWarpSrcW, kH = kWarpSrcH;
+// fixture 几何（make_warp_golden.py 的 W/H）：只验 warp/pack 数学，与相机型号无关
+constexpr int kW = 1344, kH = 760;
 constexpr long kMaxTieFlips = 32;  // 0.016% of 196608
 
 const float kM1[9] = {2.6f, 0.05f, 120.f, 0.02f, 2.6f, -20.f, 3e-5f, -1e-5f, 1.f};
@@ -38,9 +39,7 @@ int main(int argc, char** argv) {
   uint32_t s = 0x9E3779B9u;  // 与 make_warp_golden.py 的 lcg_frame 同式
   for (auto& b : y) { s = s * 1664525u + 1013904223u; b = (uint8_t)(s >> 24); }
   for (auto& b : uv) { s = s * 1664525u + 1013904223u; b = (uint8_t)(s >> 24); }
-  Nv12View src;
-  src.y = y.data();
-  src.uv = uv.data();
+  Nv12View src{y.data(), uv.data(), kW, kH, kW, kW};
 
   int fails = 0;
   const float* mats[3] = {kM1, kM2, kM3};

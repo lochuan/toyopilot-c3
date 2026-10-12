@@ -54,7 +54,7 @@ int main() {
   get_warp_matrix(rpy, kWideRoadIntrinsics, true, wide);
   get_warp_matrix(rpy2, kNarrowRoadIntrinsics, false, road2);
 
-  Src a(kWarpSrcW), b(kWarpSrcW), padded(1408);
+  Src a(kWarpSrcW), b(kWarpSrcW), padded(2048);
   WarpLut lut;
   CHECK(lut_matches(lut, a.v, road));     // 首次建表
   CHECK(lut_matches(lut, b.v, road));     // 换源内容、同矩阵：复用表
