@@ -56,6 +56,7 @@ PROCS = {
   "openpilot.selfdrive.locationd.paramsd": 9.0,
   "openpilot.selfdrive.locationd.lagd": 11.0,
   "openpilot.selfdrive.ui.soundd": 3.0,
+  "openpilot.selfdrive.ui.buzzerd": 1.0,  # 只在 tici（C3XL）上运行
   "openpilot.system.proclogd": 7.0,
   "openpilot.system.logmessaged": 1.0,
   "openpilot.system.tombstoned": 0,
