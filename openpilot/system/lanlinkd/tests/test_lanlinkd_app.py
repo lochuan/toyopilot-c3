@@ -248,6 +248,50 @@ class TestDiagnosticsRoute:
     assert r.json == report
 
 
+class TestSplashRoutes:
+  """开机画面：写入/恢复限停车，坏图 400，没备份不能恢复。"""
+
+  @pytest.fixture
+  def splash_app(self, app, tmp_path):
+    from openpilot.system.lanlinkd import splash
+    from openpilot.system.lanlinkd.tests.splash_fakes import FakePartition, make_splash
+    app.ctx.state.splash_service = splash.SplashService(FakePartition(make_splash()), str(tmp_path / "orig.bin"))
+    return app
+
+  @staticmethod
+  def landscape_png() -> bytes:
+    from openpilot.system.lanlinkd.tests.splash_fakes import landscape_png
+    return landscape_png()
+
+  def test_get_reports_preview_and_offroad(self, splash_app):
+    splash_app.ctx.fake_params.put_bool("IsOffroad", True)
+    _, r = splash_app.test_client.get("/api/splash")
+    assert r.status == 200
+    assert r.json["preview"].startswith("data:image/jpeg;base64,")
+    assert r.json["customized"] is False and r.json["offroad"] is True
+
+  def test_write_is_refused_onroad(self, splash_app):
+    splash_app.ctx.fake_params.put_bool("IsOffroad", False)
+    _, r = splash_app.test_client.put("/api/splash", content=self.landscape_png())
+    assert r.status == 409
+    _, r = splash_app.test_client.post("/api/splash/restore")
+    assert r.status == 409
+
+  def test_garbage_image_is_400(self, splash_app):
+    splash_app.ctx.fake_params.put_bool("IsOffroad", True)
+    _, r = splash_app.test_client.put("/api/splash", content=b"not an image")
+    assert r.status == 400
+
+  def test_replace_then_restore(self, splash_app):
+    splash_app.ctx.fake_params.put_bool("IsOffroad", True)
+    _, r = splash_app.test_client.post("/api/splash/restore")
+    assert r.status == 409, "没有备份时不能恢复"
+    _, r = splash_app.test_client.put("/api/splash", content=self.landscape_png(), headers={"Content-Type": "image/png"})
+    assert r.status == 200 and r.json["customized"] is True
+    _, r = splash_app.test_client.post("/api/splash/restore")
+    assert r.status == 200 and r.json["customized"] is False
+
+
 class TestStaticRoutes:
   def test_index_is_served(self, app):
     _, r = app.test_client.get("/")

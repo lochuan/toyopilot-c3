@@ -6,6 +6,7 @@ import SettingRow from "./SettingRow.vue";
 import BluetoothPanel from "./BluetoothPanel.vue";
 import WifiPanel from "./WifiPanel.vue";
 import SoftwarePanel from "./SoftwarePanel.vue";
+import SplashCard from "./SplashCard.vue";
 import VehiclePanel from "./VehiclePanel.vue";
 import StatusPanel from "./StatusPanel.vue";
 import DiagnosticsPanel from "./diagnostics/DiagnosticsPanel.vue";
@@ -63,6 +64,9 @@ const showBrand = computed(() => brandSettings.value && props.panel.id === "togg
       :key="section.id ?? `s${i}`"
       :section="section"
     />
+
+    <!-- 显示页：参数分区之后接开机画面（改 splash 分区，走 /api/splash） -->
+    <SplashCard v-if="panel.id === 'display'" />
 
     <!-- 车型专属：按 capabilities.brand 选取 -->
     <section v-if="showBrand && brandSettings" class="sl-card px-5 py-4">

@@ -320,6 +320,14 @@ export interface SoftwareStatus {
   offroad: boolean;
 }
 
+/** /api/splash：开机画面。preview 是屏幕所见方向的缩略图（data URL）；
+ *  customized = 存有 LANLink 修改前的备份，可以恢复 */
+export interface SplashStatus {
+  preview: string;
+  customized: boolean;
+  offroad: boolean;
+}
+
 /** /api/diagnostics：诊断页（相机安装、跑偏、画龙、转向能力）。
  *  行驶统计只算本次行驶（started 由假变真时清零，停车后保留）。 */
 export interface DiagnosticsReport {

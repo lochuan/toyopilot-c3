@@ -31,6 +31,7 @@ from openpilot.system.lanlinkd import logs as logs_mod
 from openpilot.system.lanlinkd import mdns
 from openpilot.system.lanlinkd import params_api
 from openpilot.system.lanlinkd import settings as settings_mod
+from openpilot.system.lanlinkd import splash
 from openpilot.system.lanlinkd import vehicle_api
 from openpilot.system.lanlinkd import wifi_api
 from openpilot.system.lanlinkd import software_api
@@ -39,7 +40,9 @@ from openpilot.system.lanlinkd.statusd import StatusCache
 
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 VERSION_PARAMS = ("Version", "GitBranch", "GitCommit")
-MAX_BODY_BYTES = 2 * 1024 * 1024
+# 全局上限，只为 PUT /api/splash 放宽：2160×1080 的 JPEG 一般 1 MB 上下，照片可能超过 2 MB；
+# 其他接口都是小 JSON，不受影响
+MAX_BODY_BYTES = 8 * 1024 * 1024
 
 
 def _json_error(status: int, message: str) -> HTTPResponse:
@@ -58,6 +61,7 @@ class LanlinkApp:
     threading.Thread(target=self.cache.run, args=(self.exit_event,), name="lanlink_status", daemon=True).start()
     self.toyota = toyota_diag_api.create(self.params, self.cache.snapshot)
     threading.Thread(target=self.toyota.idle_watchdog, args=(self.exit_event,), name="lanlink_toyota_idle", daemon=True).start()
+    self.splash_service = splash.SplashService(splash.SplashPartition())
 
   def close(self) -> None:
     """进程退出前调用：停后台线程，并退出丰田诊断模式把 panda 还给 pandad（守护线程等不到）。"""
@@ -218,6 +222,32 @@ class LanlinkApp:
       return _json_error(code, payload)
     return json_response(payload, status=code)
 
+  # ---- splash（开机画面）----
+  # 读写分区约 7 MB + 缩放旋转，阻塞，进线程池；改分区限停车
+  async def splash_get(self, request: Request) -> HTTPResponse:
+    return await self._splash("status")
+
+  async def splash_put(self, request: Request) -> HTTPResponse:
+    return await self._splash("replace", request.body)
+
+  async def splash_restore(self, request: Request) -> HTTPResponse:
+    return await self._splash("restore")
+
+  async def _splash(self, method: str, *args) -> HTTPResponse:
+    offroad = self.params.get_bool("IsOffroad")
+    if method != "status" and not offroad:
+      return _json_error(409, "开机画面只能在停车（offroad）时修改。")
+    try:
+      body = await asyncio.to_thread(getattr(self.splash_service, method), *args)
+    except splash.InvalidImageError as e:
+      return _json_error(400, str(e))
+    except splash.NoBackupError as e:
+      return _json_error(409, str(e))
+    except (splash.SplashFormatError, splash.WriteVerifyError, splash.PartitionIOError, OSError) as e:
+      cloudlog.exception(f"lanlinkd: splash {method} failed")
+      return _json_error(500, str(e))
+    return json_response({**body, "offroad": offroad})
+
   # ---- toyota 诊断 ----
   # 全部是阻塞 IO（等 pandad 退出、等 ECU 应答，扫描可达几十秒），一律进线程池
   async def _toyota(self, method: str, *args) -> HTTPResponse:
@@ -330,6 +360,9 @@ ROUTES: tuple[tuple[str, str, str], ...] = (
   ("POST", "/api/wifi/<operation:str>", "wifi_operation"),
   ("GET", "/api/software", "software_get"),
   ("POST", "/api/software/<action:str>", "software_action"),
+  ("GET", "/api/splash", "splash_get"),
+  ("PUT", "/api/splash", "splash_put"),
+  ("POST", "/api/splash/restore", "splash_restore"),
   ("GET", "/api/toyota/session", "toyota_session_get"),
   ("GET", "/api/toyota/catalog", "toyota_catalog"),
   ("POST", "/api/toyota/session/enter", "toyota_session_enter"),

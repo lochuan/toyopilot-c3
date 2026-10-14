@@ -7,7 +7,7 @@
  */
 import type {
   BluetoothStatus, Capabilities, DiagnosticsReport, ParamValues, SettingsSchema,
-  SoftwareStatus, StatusSnapshot, ToyotaBackup, ToyotaCatalog, ToyotaCustomizationScan, ToyotaDtcClearResult,
+  SoftwareStatus, SplashStatus, StatusSnapshot, ToyotaBackup, ToyotaCatalog, ToyotaCustomizationScan, ToyotaDtcClearResult,
   ToyotaDtcScan, ToyotaLiveValue, ToyotaSession, ToyotaWriteResult, VehicleState, WifiStatus,
 } from "./schema";
 
@@ -79,6 +79,12 @@ export const api = {
   software: () => request<SoftwareStatus>("/api/software"),
   softwareOp: (action: string) =>
     post<null>(`/api/software/${encodeURIComponent(action)}`),
+
+  // ---- splash（开机画面）：写入与恢复限停车，否则 409 ----
+  splash: () => request<SplashStatus>("/api/splash"),
+  putSplash: (image: Blob) =>
+    request<SplashStatus>("/api/splash", { method: "PUT", body: image, headers: { "Content-Type": image.type } }),
+  restoreSplash: () => post<SplashStatus>("/api/splash/restore"),
 
   // ---- toyota 诊断（非诊断模式下除 session、catalog、backups 外一律 409 {"error": "请先进入诊断模式"}）----
   toyotaSession: () => request<ToyotaSession>("/api/toyota/session"),
