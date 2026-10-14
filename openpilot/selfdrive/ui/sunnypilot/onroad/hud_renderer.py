@@ -35,6 +35,7 @@ class HudRendererSP(HudRenderer):
     self.circular_alerts_renderer = CircularAlertsRenderer()
     self.speed_renderer = SpeedRenderer()
     self._torque_bar = TorqueBar(scale=3.0, always=True)
+    self._txt_npu_green: rl.Texture = gui_app.texture("icons_mici/NPU_GREEN.png", 108, 80)
 
     self.pcm_cruise_speed: bool = True
     self.show_icbm_status: bool = False
@@ -140,4 +141,10 @@ class HudRendererSP(HudRenderer):
     self.turn_signal_controller.render(rect)
     self.circular_alerts_renderer.render(rect)
     self.rocket_fuel.render(rect, ui_state.sm)
+    # 同 mici：大模型在工作（最近 50 帧 ≥45 帧）时右下角亮绿色 NPU；底部开发者栏打开时上移让位
+    if ui_state.bigmodel_enabled and ui_state.big_frames.mostly_big():
+      tex = self._txt_npu_green
+      rl.draw_texture_ex(tex, rl.Vector2(rect.x + rect.width - 42 - tex.width,
+                                         rect.y + rect.height - 28 - get_bottom_dev_ui_offset() - tex.height),
+                         0.0, 1.0, rl.WHITE)
 

@@ -9,7 +9,7 @@ from openpilot.system.ui.lib.text_measure import measure_text_cached
 from openpilot.system.ui.widgets import Widget
 
 from openpilot.selfdrive.ui.sunnypilot.layouts.sidebar import SidebarSP
-from openpilot.selfdrive.ui.sunnypilot.npu_state import npu_color
+from openpilot.selfdrive.ui.sunnypilot.npu_state import npu_icon
 
 SIDEBAR_WIDTH = 300
 METRIC_HEIGHT = 126
@@ -219,13 +219,11 @@ class Sidebar(Widget, SidebarSP):
 
   def _draw_npu_metric(self, rect: rl.Rectangle, y: float):
     metric_rect = rl.Rectangle(rect.x + METRIC_MARGIN, y, METRIC_WIDTH, METRIC_HEIGHT)
-    if ui_state.bigmodel_enabled:
-      green = npu_color(ui_state.started, ui_state.bigmodel_link_state) == "green"
-      icon = self._npu_green if green else self._npu_orange
-      edge_color = Colors.GOOD if green else Colors.WARNING
-    else:
-      icon = self._npu_gray
-      edge_color = Colors.GRAY
+    icon, edge_color = {
+      "green": (self._npu_green, Colors.GOOD),
+      "orange": (self._npu_orange, Colors.WARNING),
+      "gray": (self._npu_gray, Colors.GRAY),
+    }[npu_icon(ui_state.bigmodel_enabled, ui_state.big_frames.mostly_big())]
 
     edge_rect = rl.Rectangle(metric_rect.x + 4, metric_rect.y + 4, 100, 118)
     rl.begin_scissor_mode(int(metric_rect.x + 4), int(metric_rect.y), 18, int(metric_rect.height))

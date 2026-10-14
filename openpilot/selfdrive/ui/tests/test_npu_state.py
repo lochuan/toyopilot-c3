@@ -38,3 +38,12 @@ def test_big_frame_window_needs_full_window_and_45_of_50():
   assert not w.mostly_big()
   w.clear()
   assert not w.mostly_big()
+
+
+def test_npu_icon_follows_big_model_share():
+  # 侧边栏与行车 HUD 同口径：开 + 最近 50 帧大模型 ≥45 → 绿；开但不足 → 橙；关 → 灰
+  from openpilot.selfdrive.ui.sunnypilot.npu_state import npu_icon
+  assert npu_icon(True, True) == "green"
+  assert npu_icon(True, False) == "orange"
+  assert npu_icon(False, True) == "gray"
+  assert npu_icon(False, False) == "gray"

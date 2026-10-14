@@ -10,6 +10,7 @@ from openpilot.common.params import Params
 from openpilot.common.realtime import drop_realtime
 from openpilot.common.swaglog import cloudlog
 from openpilot.system.ui.lib.application import gui_app
+from openpilot.selfdrive.ui.sunnypilot.npu_state import BigFrameWindow
 from openpilot.common.hardware import HARDWARE, PC
 from openpilot.common.hardware.usb import TYPEC_CC_ORIENTATION_PATH, get_usb_state, is_chestnut_usb_id, read_int
 
@@ -80,6 +81,7 @@ class UIState(UIStateSP):
     # 开关默认关（同 AdbEnabled：注册无默认值，get_bool 缺省键返 False）
     self.bigmodel_enabled: bool = self.params.get_bool("BigmodelToggle")
     self.bigmodel_link_state: str = self.params.get("BigmodelLinkState") or ""
+    self.big_frames = BigFrameWindow()  # 最近 50 帧 modelV2.big，侧边栏与行车 HUD 的 NPU 图标共用
     self.usb_connected: bool = False
     self.usb_connected_ts: float | None = None
     self.usb_disconnected_ts: float | None = None
@@ -160,6 +162,10 @@ class UIState(UIStateSP):
 
     # Update started state
     self.started = self.sm["deviceState"].started and self.ignition
+    if not self.started:
+      self.big_frames.clear()
+    elif self.sm.updated["modelV2"]:
+      self.big_frames.push(self.sm["modelV2"].big)
 
     # Update body state
     if self.CP is not None and self.is_body != self.CP.notCar:
