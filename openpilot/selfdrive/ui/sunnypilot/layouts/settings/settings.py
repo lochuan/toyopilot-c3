@@ -10,10 +10,12 @@ from enum import IntEnum
 import pyray as rl
 from openpilot.selfdrive.ui.layouts.settings import settings as OP
 from openpilot.selfdrive.ui.layouts.settings.toggles import TogglesLayout
+from openpilot.selfdrive.ui.sunnypilot.layouts.settings.chipmunk import ChipmunkLayout
 from openpilot.selfdrive.ui.sunnypilot.layouts.settings.cruise import CruiseLayout
 from openpilot.selfdrive.ui.sunnypilot.layouts.settings.developer import DeveloperLayoutSP
 from openpilot.selfdrive.ui.sunnypilot.layouts.settings.device import DeviceLayoutSP
 from openpilot.selfdrive.ui.sunnypilot.layouts.settings.display import DisplayLayout
+from openpilot.selfdrive.ui.sunnypilot.layouts.settings.lanlink import LanLinkLayout
 from openpilot.selfdrive.ui.sunnypilot.layouts.settings.network import NetworkUISP
 from openpilot.selfdrive.ui.sunnypilot.layouts.settings.software import SoftwareLayoutSP
 from openpilot.selfdrive.ui.sunnypilot.layouts.settings.steering import SteeringLayout
@@ -35,6 +37,8 @@ ICON_SIZE = 70
 OP.PanelType = IntEnum(  # type: ignore[assignment] # ty: ignore[invalid-assignment]
   "PanelType",
   [es.name for es in OP.PanelType] + [
+    "LANLINK",
+    "CHIPMUNK",
     "MODELS",
     "STEERING",
     "CRUISE",
@@ -104,6 +108,9 @@ class SettingsLayoutSP(OP.SettingsLayout):
     self._panels = {
       OP.PanelType.DEVICE: PanelInfo(tr_noop("Device"), DeviceLayoutSP(), icon="../../sunnypilot/selfdrive/assets/offroad/icon_home.png"),
       OP.PanelType.NETWORK: PanelInfo(tr_noop("Network"), NetworkUISP(wifi_manager), icon="icons/network.png"),
+      # 名称不翻译（用户要求左栏只显示 LANLink / Chipmunk）
+      OP.PanelType.LANLINK: PanelInfo("LANLink", LanLinkLayout(), icon="icons/link.png"),
+      OP.PanelType.CHIPMUNK: PanelInfo("Chipmunk", ChipmunkLayout(), icon="icons_mici/NPU.png"),
       OP.PanelType.TOGGLES: PanelInfo(tr_noop("Toggles"), TogglesLayout(), icon="../../sunnypilot/selfdrive/assets/offroad/icon_toggle.png"),
       OP.PanelType.SOFTWARE: PanelInfo(tr_noop("Software"), SoftwareLayoutSP(), icon="../../sunnypilot/selfdrive/assets/offroad/icon_software.png"),
       OP.PanelType.STEERING: PanelInfo(tr_noop("Steering"), SteeringLayout(), icon="../../sunnypilot/selfdrive/assets/offroad/icon_lateral.png"),

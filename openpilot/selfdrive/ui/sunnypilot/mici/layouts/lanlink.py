@@ -4,34 +4,18 @@ Copyright (c) 2021-, Haibin Wen, sunnypilot, and a number of other contributors.
 This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
-import socket
 import time
 
 import pyray as rl
 
 from openpilot.selfdrive.ui.mici.widgets.button import BigToggle
+from openpilot.selfdrive.ui.sunnypilot.lanlink_url import IP_REFRESH_INTERVAL_S, current_lanlink_url_text
 from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.ui.lib.application import FontWeight
 from openpilot.system.ui.lib.multilang import tr
 from openpilot.system.ui.widgets import Widget
 from openpilot.system.ui.widgets.label import UnifiedLabel
 from openpilot.system.ui.widgets.scroller import NavScroller
-
-LANLINK_PORT = 8088
-IP_REFRESH_INTERVAL_S = 2.0
-
-
-def get_lan_ip() -> str | None:
-  """主网卡 IP：UDP connect 不产生真实流量，仅让内核选出接口。"""
-  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  try:
-    s.connect(("8.8.8.8", 80))
-    return s.getsockname()[0]
-  except OSError:
-    return None
-  finally:
-    s.close()
-
 
 class LanLinkInfo(Widget):
   def __init__(self):
@@ -73,11 +57,7 @@ class LanLinkLayoutMici(NavScroller):
     self._refresh_url()
 
   def _refresh_url(self):
-    if not ui_state.params.get_bool("LanLinkEnabled"):
-      self._url = tr("service disabled")
-    else:
-      ip = get_lan_ip()
-      self._url = f"http://{ip}:{LANLINK_PORT}" if ip else "—"
+    self._url = current_lanlink_url_text(ui_state.params.get_bool("LanLinkEnabled"))
 
   def _update_state(self):
     super()._update_state()
