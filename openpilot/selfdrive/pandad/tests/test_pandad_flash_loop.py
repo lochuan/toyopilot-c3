@@ -1,6 +1,7 @@
 """pandad.py 包装进程主循环的纯逻辑测试（不碰硬件、不起 ./pandad）。
 
-- 复位后 panda 约 0.2 s 才能枚举到：立刻枚举为空不能当成缺失，否则下一轮 recover 进 DFU、每次启动都重刷固件；
+- 复位后 panda 要过一会儿才能枚举到（comma four 约 0.2 s，C3XL 的 tici 实测 10.0 s）：
+  立刻枚举为空不能当成缺失，否则下一轮 recover 进 DFU、每次启动都重刷固件；
 - 刷写期间收到 SIGINT 不能再启动 ./pandad：manager 5 s 后 SIGKILL 包装进程，./pandad 会成为孤儿一直占着 panda。
 """
 import os
@@ -111,3 +112,36 @@ def test_sigint_while_pandad_runs_is_forwarded_and_loop_ends(monkeypatch):
   pandad_mod.main()
   assert len(loop.processes) == 1 and loop.processes[0].signals == [signal.SIGINT]
   assert loop.hardware.calls == ["reset"]
+
+
+TICI_PANDA_BOOT_S = 10.0  # C3XL（tici）实测：GPIO 复位后 5 轮都是 10.0 s 才枚举到，list() 本身不卡
+
+
+def test_waits_for_tici_panda_that_enumerates_10s_after_reset(monkeypatch):
+  import panda.python as panda_python
+
+  class FakeClock:
+    now = 0.0
+
+    @classmethod
+    def monotonic(cls):
+      return cls.now
+
+    @classmethod
+    def sleep(cls, seconds):
+      cls.now += seconds
+
+  loop = Loop(monkeypatch)
+  reset_at = []
+  monkeypatch.setattr(loop.hardware, "reset_internal_panda", lambda: (loop.hardware.calls.append("reset"), reset_at.append(FakeClock.now)))
+
+  class TiciPanda(pandad_mod.Panda):
+    @classmethod
+    def list(cls, usb_only=False):
+      return [SERIAL] if reset_at and FakeClock.now - reset_at[-1] >= TICI_PANDA_BOOT_S else []
+
+  monkeypatch.setattr(panda_python, "time", FakeClock)
+  monkeypatch.setattr(pandad_mod, "Panda", TiciPanda)
+  pandad_mod.main()
+  assert loop.hardware.calls == ["reset"]  # 没有走 recover（DFU 重刷）
+  assert loop.flashed == [SERIAL] and len(loop.processes) == 1

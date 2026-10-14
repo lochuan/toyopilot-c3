@@ -14,8 +14,9 @@ from openpilot.common.swaglog import cloudlog
 
 from openpilot.sunnypilot.selfdrive.pandad.rivian_long_flasher import flash_rivian_long
 
-# 复位后 panda 约 0.2 s 才能被枚举到；给足余量，panda 真不在时最多多等这么久
-PANDA_BOOT_TIMEOUT_S = 2
+# 复位后 panda 要过一会儿才能被枚举到：comma four 约 0.2 s，C3XL 的 tici 实测 10.0 s（5 轮一致）。
+# 给足余量；枚举到就返回，只有 panda 真不在时才会多等这么久再 recover
+PANDA_BOOT_TIMEOUT_S = 15
 
 
 def get_expected_signature() -> bytes:
