@@ -61,6 +61,11 @@ def lanlink_run(started: bool, params: Params, CP: car.CarParams) -> bool:
     return False
   return True
 
+def pandad_run(started: bool, params: Params, CP: car.CarParams) -> bool:
+  # LANLink 丰田诊断模式期间让出 panda（lanlinkd 直连发诊断帧，见 system/lanlinkd/toyota/session.py）。
+  # 也看 lanlink_run：lanlinkd 没在跑（关掉 LanLink 或镜像缺 sanic）时没人再清诊断 param，pandad 不能因此一直不起
+  return not (params.get_bool("LanLinkDiagMode") and lanlink_run(started, params, CP))
+
 def bigmodeld_run(started: bool, params: Params, CP: car.CarParams) -> bool:
   # 07 号：「远程大模型」关闭时不启动上行进程，行为同 lean-master；默认关（同 AdbEnabled）
   return started and params.get_bool("BigmodelToggle")
@@ -93,7 +98,7 @@ procs = [
   PythonProcess("buzzerd", "openpilot.selfdrive.ui.buzzerd", only_onroad, enabled=COMMA_HARDWARE and HARDWARE.get_device_type() == "tici"),
   PythonProcess("bluetooth_managerd", "openpilot.sunnypilot.system.bluetooth.daemon", bluetooth_enabled, enabled=COMMA_HARDWARE),
   PythonProcess("locationd", "openpilot.selfdrive.locationd.locationd", only_onroad),
-  NativeProcess("_pandad", "openpilot/selfdrive/pandad", ["./pandad"], always_run, enabled=False),
+  NativeProcess("_pandad", "openpilot/selfdrive/pandad", ["./pandad"], pandad_run, enabled=False),
   PythonProcess("calibrationd", "openpilot.selfdrive.locationd.calibrationd", only_onroad),
   PythonProcess("torqued", "openpilot.selfdrive.locationd.torqued", only_onroad),
   PythonProcess("controlsd", "openpilot.selfdrive.controls.controlsd", iscar),
@@ -102,7 +107,7 @@ procs = [
   PythonProcess("card", "openpilot.selfdrive.car.card", only_onroad),
   PythonProcess("deleter", "openpilot.system.loggerd.deleter", always_run),
   PythonProcess("qcomgpsd", "openpilot.system.qcomgpsd.qcomgpsd", qcomgps, enabled=COMMA_HARDWARE),
-  PythonProcess("pandad", "openpilot.selfdrive.pandad.pandad", always_run),
+  PythonProcess("pandad", "openpilot.selfdrive.pandad.pandad", pandad_run),
   PythonProcess("paramsd", "openpilot.selfdrive.locationd.paramsd", only_onroad),
   PythonProcess("lagd", "openpilot.selfdrive.locationd.lagd", only_onroad),
   PythonProcess("ubloxd", "openpilot.system.ubloxd.ubloxd", ublox, enabled=COMMA_HARDWARE),

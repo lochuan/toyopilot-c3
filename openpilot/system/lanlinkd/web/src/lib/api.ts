@@ -7,7 +7,8 @@
  */
 import type {
   BluetoothStatus, Capabilities, DiagnosticsReport, ParamValues, SettingsSchema,
-  SoftwareStatus, StatusSnapshot, VehicleState, WifiStatus,
+  SoftwareStatus, StatusSnapshot, ToyotaBackup, ToyotaCatalog, ToyotaCustomizationScan, ToyotaDtcClearResult,
+  ToyotaDtcScan, ToyotaLiveValue, ToyotaSession, ToyotaWriteResult, VehicleState, WifiStatus,
 } from "./schema";
 
 export class ApiError extends Error {
@@ -78,6 +79,23 @@ export const api = {
   software: () => request<SoftwareStatus>("/api/software"),
   softwareOp: (action: string) =>
     post<null>(`/api/software/${encodeURIComponent(action)}`),
+
+  // ---- toyota 诊断（非诊断模式下除 session、catalog、backups 外一律 409 {"error": "请先进入诊断模式"}）----
+  toyotaSession: () => request<ToyotaSession>("/api/toyota/session"),
+  toyotaEnter: () => post<ToyotaSession>("/api/toyota/session/enter"),
+  toyotaExit: () => post<null>("/api/toyota/session/exit"),
+  toyotaCatalog: () => request<ToyotaCatalog>("/api/toyota/catalog"),
+  // 扫描由前端按目录 ECU 列表逐个调用
+  toyotaScanCustomizations: (ecu: string) => post<ToyotaCustomizationScan>("/api/toyota/customizations/scan", { ecu }),
+  toyotaWrite: (key: string, value: number, before: string) =>
+    post<ToyotaWriteResult>(`/api/toyota/customizations/${encodeURIComponent(key)}/write`, { value, before }),
+  toyotaBackups: () => request<{ backups: ToyotaBackup[] }>("/api/toyota/backups"),
+  toyotaRestore: (id: string) =>
+    post<ToyotaWriteResult>(`/api/toyota/backups/${encodeURIComponent(id)}/restore`),
+  toyotaScanDtc: (ecu: string) => post<ToyotaDtcScan>("/api/toyota/dtc/scan", { ecu }),
+  toyotaClearDtc: (ecus: string[]) =>
+    post<{ results: ToyotaDtcClearResult[] }>("/api/toyota/dtc/clear", { ecus }),
+  toyotaReadLive: (keys: string[]) => post<{ values: ToyotaLiveValue[] }>("/api/toyota/live/read", { keys }),
 
   // ---- logs ----
   logs: () => request<unknown>("/api/logs"),
