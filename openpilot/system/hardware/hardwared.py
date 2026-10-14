@@ -63,6 +63,12 @@ OFFROAD_DANGER_TEMP = 85 if HARDWARE.get_device_type() == "mici" else 75
 prev_offroad_states: dict[str, tuple[bool, str | None]] = {}
 
 
+def offroad_idle_for_5_min(started_ts: float | None, off_ts: float | None, now: float) -> bool:
+  # 上游把“开机后还没上过路”也算作熄火 5 分钟，于是开机负载把 CPU 单核冲到 85°C 上下时
+  # 直接按 OFFROAD_DANGER_TEMP 判 critical：每次开机弹过热提示、晚几十秒才能上路。
+  # 开机时只走 THERMAL_BANDS（>96°C 仍禁止上路），熄火闲置满 5 分钟才提前预冷。
+  return started_ts is None and off_ts is not None and now - off_ts > 60 * 5
+
 
 def set_offroad_alert_if_changed(offroad_alert: str, show_alert: bool, extra_text: str | None=None):
   if prev_offroad_states.get(offroad_alert, None) == (show_alert, extra_text):
@@ -275,8 +281,7 @@ def hardware_thread(end_event, hw_queue) -> None:
 
     msg.deviceState.fanSpeedPercentDesired = fan_controller.update(all_comp_temp, onroad_conditions["ignition"])
 
-    is_offroad_for_5_min = (started_ts is None) and ((not started_seen) or (off_ts is None) or (time.monotonic() - off_ts > 60 * 5))
-    if is_offroad_for_5_min and offroad_comp_temp > OFFROAD_DANGER_TEMP:
+    if offroad_idle_for_5_min(started_ts, off_ts, time.monotonic()) and offroad_comp_temp > OFFROAD_DANGER_TEMP:
       # if device is offroad and already hot without the extra onroad load,
       # we want to cool down first before increasing load
       thermal_status = ThermalStatus.critical
