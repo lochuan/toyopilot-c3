@@ -126,6 +126,9 @@ class HardwareBase(ABC):
   def set_power_save(self, powersave_enabled):
     pass
 
+  def pin_wlan_rx_thread_to_camerad_core(self):
+    pass
+
   def get_gpu_usage_percent(self):
     return 0
 

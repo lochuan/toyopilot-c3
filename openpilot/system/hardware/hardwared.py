@@ -368,6 +368,10 @@ def hardware_thread(end_event, hw_queue) -> None:
                          startup_conditions=startup_conditions, onroad_conditions=onroad_conditions,
                          startup_conditions_prev=startup_conditions_prev, error=True)
       startup_blocked_ts = None
+
+      # WLAN 收包线程开机晚起、Wi-Fi 重连会重建，onroad 期间每 10 s 补绑（Chipmunk OS 98 号）
+      if (count % int(10. / DT_HW)) == 0:
+        HARDWARE.pin_wlan_rx_thread_to_camerad_core()
     else:
       if onroad_conditions["ignition"] and (startup_conditions != startup_conditions_prev):
         cloudlog.event("Startup blocked", startup_conditions=startup_conditions, onroad_conditions=onroad_conditions, error=True)
