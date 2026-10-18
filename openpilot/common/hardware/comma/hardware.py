@@ -316,20 +316,6 @@ class HardwareComma(HardwareBase):
     for n in camera_irqs:
       affine_irq(6, n)
 
-    if not powersave_enabled:
-      self.pin_wlan_rx_thread_to_camerad_core()
-
-  def pin_wlan_rx_thread_to_camerad_core(self):
-    # WLAN 收包内核线程默认在 CPU7，被 modeld 压出 4–5 ms 尾延迟（Chipmunk OS 96 号 §3）；开机晚起、Wi-Fi 重连会重建，hardwared onroad 时定期补绑
-    try:
-      for pid in subprocess.run(["pgrep", "-x", "cds_ol_rx_threa"], capture_output=True, text=True, timeout=1).stdout.split():
-        with open(f"/proc/{pid}/status") as f:
-          if any(line.split() == ["Cpus_allowed_list:", "6"] for line in f):
-            continue
-        subprocess.run(["sudo", "taskset", "-pc", "6", pid], capture_output=True, timeout=1)
-    except (OSError, subprocess.TimeoutExpired) as e:
-      print(str(e))
-
   def get_gpu_usage_percent(self):
     try:
       with open('/sys/class/kgsl/kgsl-3d0/gpubusy') as f:
