@@ -51,6 +51,7 @@ def convert_to_capnp(struct: structs.CarParamsSP | structs.CarStateSP) -> capnp.
 
 
 def _plain_and_enum_fields(cls) -> tuple[tuple[str, ...], tuple[str, ...]]:
+  # a field counts as an enum when its dataclass default is a StrEnum member (true for every car struct enum field)
   names = [f.name for f in dataclasses.fields(cls) if not f.name.endswith('DEPRECATED')]
   defaults = cls()
   enum_names = tuple(n for n in names if isinstance(getattr(defaults, n), StrEnum))
@@ -67,9 +68,8 @@ _CAR_CONTROL_SP_SUBSTRUCTS = tuple((name, cls, *_plain_and_enum_fields(cls)) for
 
 
 def convert_carControlSP(struct: capnp.lib.capnp._DynamicStructReader) -> structs.CarControlSP:
-  # Chipmunk OS 97/99: read fields straight off the reader instead of to_dict() + rebuild (301 -> ~110 us per card cycle).
-  # Same result as the to_dict() path, value for value and type for type: enums come out as str, an unset
-  # sub-struct keeps the dataclass defaults (LeadData.radarTrackId 0, not capnp's -1), params stays a list of dicts.
+  # Chipmunk OS 99: reads the reader directly instead of to_dict(), with the same result: enums come out as str,
+  # an unset sub-struct keeps the dataclass defaults, params stays a list of dicts.
   struct_dataclass = structs.CarControlSP(params=[p.to_dict() for p in struct.params])
   for name, cls, plain_fields, enum_fields in _CAR_CONTROL_SP_SUBSTRUCTS:
     if struct._has(name):

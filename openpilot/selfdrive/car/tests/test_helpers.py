@@ -2,7 +2,7 @@ import dataclasses
 import random
 
 from openpilot.cereal import custom
-from openpilot.selfdrive.car.helpers import convert_carControlSP
+from openpilot.selfdrive.car.helpers import _CAR_CONTROL_SP_SUBSTRUCTS, convert_carControlSP
 from opendbc.car import structs
 
 
@@ -64,6 +64,10 @@ def random_carControlSP(rng: random.Random):
   return msg.as_reader()
 
 
+def non_deprecated(names) -> set[str]:
+  return {n for n in names if not n.endswith('DEPRECATED')}
+
+
 def assert_same_values_and_types(new, ref, path='CarControlSP'):
   assert type(new) is type(ref), f"{path}: {type(new)} != {type(ref)}"
   if dataclasses.is_dataclass(ref):
@@ -97,3 +101,32 @@ class TestConvertCarControlSP:
     for _ in range(500):
       struct = random_carControlSP(rng)
       assert_same_values_and_types(convert_carControlSP(struct), convert_carControlSP_via_to_dict(struct))
+
+  def test_partially_set_substructs(self):
+    # setting one field allocates the sub-struct, so the rest are capnp defaults (radarTrackId -1), not dataclass defaults
+    for name, field, value in (('leadOne', 'dRel', 12.5), ('leadTwo', 'radar', True), ('mads', 'enabled', True),
+                               ('intelligentCruiseButtonManagement', 'vTarget', 20.)):
+      msg = custom.CarControlSP.new_message()
+      setattr(getattr(msg, name), field, value)
+      struct = msg.as_reader()
+      assert_same_values_and_types(convert_carControlSP(struct), convert_carControlSP_via_to_dict(struct))
+
+
+class TestCarControlSPStructsInSync:
+  """convert_carControlSP copies only registered sub-structs and known fields; a new capnp or dataclass field must fail here."""
+
+  def test_top_level_fields(self):
+    capnp_names = non_deprecated(custom.CarControlSP.schema.fields)
+    dataclass_names = non_deprecated(f.name for f in dataclasses.fields(structs.CarControlSP))
+    registered_names = {'params'} | {name for name, *_ in _CAR_CONTROL_SP_SUBSTRUCTS}
+    assert capnp_names == dataclass_names == registered_names
+
+  def test_substruct_fields(self):
+    msg = custom.CarControlSP.new_message()
+    for name, cls, plain_fields, enum_fields in _CAR_CONTROL_SP_SUBSTRUCTS:
+      capnp_fields = getattr(msg, name).schema.fields
+      capnp_names = non_deprecated(capnp_fields)
+      dataclass_names = non_deprecated(f.name for f in dataclasses.fields(cls))
+      assert capnp_names == dataclass_names == set(plain_fields) | set(enum_fields), name
+      capnp_enum_names = {n for n in capnp_names if capnp_fields[n].proto.slot.type.which() == 'enum'}
+      assert capnp_enum_names == set(enum_fields), name
