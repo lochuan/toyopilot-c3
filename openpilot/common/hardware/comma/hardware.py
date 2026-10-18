@@ -316,6 +316,11 @@ class HardwareComma(HardwareBase):
     for n in camera_irqs:
       affine_irq(6, n)
 
+    # WLAN 收包内核线程（comm 截成 15 字符）默认在 CPU7，被 modeld（FIFO 54）压出 4–5 ms 尾延迟；
+    # 挪到 camerad 核后等待 p99 4.2 → 0.05 ms，台架 5.5 min 未见驱动改回（Chipmunk OS 96 号 §3）。线程不在时 pgrep 无输出，跳过
+    for pid in subprocess.run(["pgrep", "-x", "cds_ol_rx_threa"], capture_output=True, text=True).stdout.split():
+      subprocess.run(["sudo", "taskset", "-pc", "6", pid], capture_output=True)
+
   def get_gpu_usage_percent(self):
     try:
       with open('/sys/class/kgsl/kgsl-3d0/gpubusy') as f:
