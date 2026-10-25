@@ -175,6 +175,10 @@ class TestOnroad(OpenpilotTestCase):
       if s in ('ubloxGnss', 'ubloxRaw', 'gnssMeasurements', 'gpsLocation', 'gpsLocationExternal', 'qcomGnss'):
         continue
 
+      # navStateSP 仅在手机回 REPLY 时发布，不能要求未连接时达到标称频率。
+      if s == 'navStateSP':
+        continue
+
       duration = TEST_DURATION - 5.0  # subtract some selfdrived initializing time
       with subtests.test(service=s):
         assert len(msgs) >= math.floor(SERVICE_LIST[s].frequency*int(duration*0.8))
