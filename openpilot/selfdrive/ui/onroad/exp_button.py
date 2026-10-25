@@ -43,6 +43,8 @@ class ExpButton(Widget):
       self._hold_end_time = time.monotonic() + self._hold_duration
 
   def _render(self, rect: rl.Rectangle) -> None:
+    if not self.enabled:
+      return
     center_x = int(self._rect.x + self._rect.width // 2)
     center_y = int(self._rect.y + self._rect.height // 2)
 

@@ -117,12 +117,17 @@ class HudRenderer(Widget):
 
     self._draw_current_speed(rect)
 
-    button_x = rect.x + rect.width - UI_CONFIG.border_size - UI_CONFIG.button_size
-    button_y = rect.y + UI_CONFIG.border_size
+    set_speed_width = UI_CONFIG.set_speed_width_metric if ui_state.is_metric else UI_CONFIG.set_speed_width_imperial
+    button_x = rect.x + 60 + (UI_CONFIG.set_speed_width_imperial - set_speed_width) // 2 + set_speed_width + 24
+    button_y = rect.y + 45 + (UI_CONFIG.set_speed_height - UI_CONFIG.button_size) // 2
+    # Disabled render clears touches that began before an alert.
     self._exp_button.render(rl.Rectangle(button_x, button_y, UI_CONFIG.button_size, UI_CONFIG.button_size))
 
   def user_interacting(self) -> bool:
     return self._exp_button.is_pressed
+
+  def set_exp_button_enabled(self, enabled: bool) -> None:
+    self._exp_button.set_enabled(enabled)
 
   def _draw_set_speed(self, rect: rl.Rectangle) -> None:
     """Draw the MAX speed indicator box."""

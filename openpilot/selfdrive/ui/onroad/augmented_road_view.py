@@ -7,6 +7,7 @@ from openpilot.selfdrive.ui.ui_state import ui_state, UIStatus
 from openpilot.selfdrive.ui.onroad.alert_renderer import AlertRenderer
 from openpilot.selfdrive.ui.onroad.hud_renderer import HudRenderer
 from openpilot.selfdrive.ui.onroad.model_renderer import ModelRenderer
+from openpilot.selfdrive.ui.sunnypilot.onroad.nav_card_renderer import NavCardRenderer
 from openpilot.selfdrive.ui.onroad.cameraview import CameraView
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.common.transformations.camera import DEVICE_CAMERAS, DeviceCameraConfig, view_frame_from_device_frame
@@ -53,6 +54,7 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     self.model_renderer = ModelRenderer()
     self._hud_renderer = HudRenderer()
     self.alert_renderer = AlertRenderer()
+    self._nav_card_renderer = NavCardRenderer()
 
   def _render(self, rect):
     # Only render when system is started to avoid invalid data access
@@ -87,7 +89,13 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     # Draw all UI overlays
     self.model_renderer.render(self._content_rect)
     AugmentedRoadViewSP.update_fade_out_bottom_overlay(self, self._content_rect)
+    alert = self.alert_renderer.get_alert(ui_state.sm)
+    self._hud_renderer.set_exp_button_enabled(alert is None)
     self._hud_renderer.render(self._content_rect)
+    self._nav_card_renderer.update()
+    self._nav_card_renderer.render_icon(self._content_rect)
+    if alert is None:
+      self._nav_card_renderer.render_card(self._content_rect)
     self.alert_renderer.render(self._content_rect)
 
     # Custom UI extension point - add custom overlays here
