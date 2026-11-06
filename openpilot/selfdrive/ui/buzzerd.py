@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """
-C3XL 板载蜂鸣器（GPIO.SIREN = 42）：C3XL 的提示音由这个蜂鸣器发出，soundd 的扬声器上听不到。
-selfdriveState.alertSound 每次切换时按场景放一段声音。蜂鸣器是有源的，音高固定，
-靠在一声里快速开关（斩波）改出不同质感：80 Hz 低沉、1 kHz 柔和、不斩波最亮最响。
-各场景的声音 2026-10-13 由用户在设备上逐个试听选定。
+C3XL 板载有源蜂鸣器（GPIO.SIREN = 42）具有固定音色，用声音长短和间隔区分场景。
+libbuzzer_player 在 SCHED_FIFO 下按绝对时刻翻转 GPIO。
+可用 python -m openpilot.selfdrive.ui.buzzerd engage disengage refuse prompt warning 试听。
 """
+import ctypes
 import os
+import sys
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import NamedTuple
 
 from openpilot.cereal import log, messaging
@@ -23,20 +25,25 @@ AudibleAlert = log.SelfdriveState.AudibleAlert
 
 class BuzzerSegment(NamedTuple):
   on_seconds: float
-  chop_hz: float | None  # None = 不斩波，最亮最响
+  chop_hz: float | None  # 斩波影响音色，频率不保证对应音高；None = 不斩波，最亮最响
   gap_seconds: float  # 这一段之后的静音
 
 
 BuzzerSound = tuple[BuzzerSegment, ...]
 
-DEEP_CHOP_HZ = 80
-SOFT_CHOP_HZ = 1000
+ENGAGE_SOUND: BuzzerSound = (BuzzerSegment(0.04, None, 0.05), BuzzerSegment(0.085, None, 0.))  # 短接长
+DISENGAGE_SOUND: BuzzerSound = (BuzzerSegment(0.10, None, 0.075), BuzzerSegment(0.04, None, 0.))  # 长接短
+REFUSE_SOUND: BuzzerSound = (BuzzerSegment(0.045, None, 0.10), BuzzerSegment(0.045, None, 0.))  # 等长双点
+PROMPT_SOUND: BuzzerSound = (BuzzerSegment(0.045, None, 0.),)
+WARNING_SOUND: BuzzerSound = (BuzzerSegment(0.05, None, 0.04), BuzzerSegment(0.05, None, 0.04), BuzzerSegment(0.12, None, 0.))
 
-ENGAGE_SOUND: BuzzerSound = (BuzzerSegment(0.15, DEEP_CHOP_HZ, 0.08), BuzzerSegment(0.15, DEEP_CHOP_HZ, 0.))  # 低沉「嘟嘟」
-DISENGAGE_SOUND: BuzzerSound = (BuzzerSegment(0.4, DEEP_CHOP_HZ, 0.),)  # 低沉「嘟——」
-REFUSE_SOUND: BuzzerSound = (BuzzerSegment(0.06, None, 0.05), BuzzerSegment(0.06, None, 0.))  # 急促「滴滴」
-PROMPT_SOUND: BuzzerSound = (BuzzerSegment(0.2, SOFT_CHOP_HZ, 0.),)  # 柔和「哔」
-WARNING_SOUND: BuzzerSound = (BuzzerSegment(0.07, None, 0.05),) * 3 + (BuzzerSegment(0.07, None, 0.),)  # 最响「滴滴滴滴」
+PREVIEW_SOUNDS = {
+  "engage": ENGAGE_SOUND,
+  "disengage": DISENGAGE_SOUND,
+  "refuse": REFUSE_SOUND,
+  "prompt": PROMPT_SOUND,
+  "warning": WARNING_SOUND,
+}
 
 SCENE_SOUNDS = {
   AudibleAlert.engage: ENGAGE_SOUND,
@@ -47,43 +54,23 @@ SCENE_SOUNDS = {
 }  # 其余提示（prompt/promptRepeat/promptDistracted/preAlert）都放 PROMPT_SOUND
 
 
-def precise_wait_until(deadline: float) -> None:
-  # 斩波要亚毫秒精度：先 sleep 到截止前 2 ms，再忙等
-  remaining = deadline - time.perf_counter()
-  if remaining > 0.002:
-    time.sleep(remaining - 0.002)
-  while time.perf_counter() < deadline:
-    pass
+def sound_edges(sound: BuzzerSound) -> list[float]:
+  edges = []
+  t = 0.
+  for segment in sound:
+    if segment.chop_hz is None:
+      edges.extend((round(t, 6), round(t + segment.on_seconds, 6)))
+      t += segment.on_seconds
+    else:
+      half_period = 0.5 / segment.chop_hz
+      for _ in range(round(segment.on_seconds * segment.chop_hz)):
+        edges.extend((round(t, 6), round(t + half_period, 6)))
+        t += 2 * half_period
+    t += segment.gap_seconds
+  return edges
 
 
-def play_sound(sound: BuzzerSound, set_buzzer: Callable[[bool], None],
-               wait_until: Callable[[float], None] = precise_wait_until, clock: Callable[[], float] = time.perf_counter) -> None:
-  # 每次开关都对准从开始算起的绝对时刻：onroad 负载高时某次 sleep 睡过头，后面会追回来，总时长和斩波频率不漂
-  t = clock()
-  try:
-    for segment in sound:
-      if segment.chop_hz is None:
-        set_buzzer(True)
-        t += segment.on_seconds
-        wait_until(t)
-        set_buzzer(False)
-      else:
-        half_period = 0.5 / segment.chop_hz
-        for _ in range(round(segment.on_seconds * segment.chop_hz)):
-          set_buzzer(True)
-          t += half_period
-          wait_until(t)
-          set_buzzer(False)
-          t += half_period
-          wait_until(t)
-      t += segment.gap_seconds
-      wait_until(t)
-  finally:
-    # 熄火时 manager 的 SIGINT 可能正好打断在响的时候，蜂鸣器不能卡在开着
-    set_buzzer(False)
-
-
-def open_buzzer_gpio() -> Callable[[bool], None] | None:
+def open_buzzer_gpio() -> int | None:
   gpio_export(GPIO.SIREN)
   # export 后 udev（99-gpio.rules）异步把权限交给 gpio 组，实测约 3 s；写失败就等它就绪再试，否则这次 onroad 全程不响
   for _ in range(200):
@@ -95,9 +82,28 @@ def open_buzzer_gpio() -> Callable[[bool], None] | None:
       time.sleep(0.05)
       continue
     # 保持 fd 打开直接写：斩波每毫秒要开关两次，每次重新 open 太慢
-    return lambda on: os.write(value_fd, b"1" if on else b"0")
+    return value_fd
   cloudlog.error("buzzerd: siren gpio still not writable after 10 s, exiting so manager restarts and retries")
   return None
+
+
+def load_buzzer_player(value_fd: int) -> Callable[[BuzzerSound], None]:
+  player = ctypes.CDLL(str(Path(__file__).with_name("libbuzzer_player.so")))
+  player.buzzer_play_edges.argtypes = [ctypes.c_int, ctypes.POINTER(ctypes.c_double), ctypes.c_size_t]
+  player.buzzer_play_edges.restype = ctypes.c_int
+
+  def play(sound: BuzzerSound) -> None:
+    try:
+      edges = sound_edges(sound)
+      edge_array = (ctypes.c_double * len(edges))(*edges)
+      ret = player.buzzer_play_edges(value_fd, edge_array, len(edges))
+      if ret != 0:
+        cloudlog.error(f"buzzerd: buzzer_play_edges failed: {os.strerror(-ret)}")
+    finally:
+      # SIGINT 在 C 调用返回后才处理；C 播放结束时也会关闭蜂鸣器。
+      os.write(value_fd, b"0")
+
+  return play
 
 
 class Buzzerd(QuietMode):
@@ -136,13 +142,16 @@ class Buzzerd(QuietMode):
 
 
 def main():
-  # 1 kHz 斩波每 0.5 ms 开关一次，onroad 负载下被抢占会出毛刺；nice -10 实测满载时最长延迟从约 20 ms 降到个位数 ms。
-  # 不用 SCHED_FIFO：放提醒音时整段都在忙等，会独占一个核
-  os.nice(-10)
-  set_buzzer = open_buzzer_gpio()
-  if set_buzzer is None:
+  fd = open_buzzer_gpio()
+  if fd is None:
     return
-  Buzzerd(lambda sound: play_sound(sound, set_buzzer)).buzzerd_thread()
+  play = load_buzzer_player(fd)
+  if len(sys.argv) > 1:
+    for name in sys.argv[1:]:
+      play(PREVIEW_SOUNDS[name])
+      time.sleep(0.6)
+    return
+  Buzzerd(play).buzzerd_thread()
 
 
 if __name__ == "__main__":

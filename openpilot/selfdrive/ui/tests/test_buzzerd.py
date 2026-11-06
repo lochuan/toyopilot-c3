@@ -4,7 +4,7 @@ import pytest
 
 from openpilot.cereal import log
 from openpilot.selfdrive.ui.buzzerd import (
-  DISENGAGE_SOUND, ENGAGE_SOUND, PROMPT_SOUND, REFUSE_SOUND, WARNING_SOUND, BuzzerSegment, Buzzerd, play_sound,
+  DISENGAGE_SOUND, ENGAGE_SOUND, PROMPT_SOUND, REFUSE_SOUND, WARNING_SOUND, BuzzerSegment, Buzzerd, sound_edges,
 )
 
 AudibleAlert = log.SelfdriveState.AudibleAlert
@@ -84,34 +84,9 @@ def test_selfdrive_state_timeout_resets_so_next_warning_plays(mocker):
   assert played_sounds == [WARNING_SOUND, WARNING_SOUND]
 
 
-def play_sound_and_record_timeline(sound) -> list:
-  # timeline：True/False = 蜂鸣器开/关，float = 等到的绝对时刻（从 0 开始，取 6 位小数免得浮点累加误差）
-  timeline: list = []
-  play_sound(sound, set_buzzer=timeline.append, wait_until=lambda deadline: timeline.append(round(deadline, 6)), clock=lambda: 0.)
-  return timeline
+def test_steady_segments_with_gaps():
+  assert sound_edges((BuzzerSegment(0.06, None, 0.05), BuzzerSegment(0.06, None, 0.))) == [0.0, 0.06, 0.11, 0.17]
 
 
-def test_play_steady_segments_with_gaps():
-  timeline = play_sound_and_record_timeline((BuzzerSegment(0.06, None, 0.05), BuzzerSegment(0.06, None, 0.)))
-  assert timeline == [True, 0.06, False, 0.11, True, 0.17, False, 0.17, False]
-
-
-def test_play_chopped_segment_toggles_at_chop_frequency():
-  timeline = play_sound_and_record_timeline((BuzzerSegment(0.05, 80, 0.),))
-  half_period = 0.5 / 80
-  expected: list = []
-  for k in range(4):
-    expected += [True, round((2 * k + 1) * half_period, 6), False, round((2 * k + 2) * half_period, 6)]
-  assert timeline == expected + [0.05, False]
-
-
-def test_buzzer_turns_off_when_interrupted_mid_sound():
-  # 熄火时 manager 用 SIGINT 停进程，正好打断在响的时候，蜂鸣器不能卡在开着
-  buzzer_writes: list[bool] = []
-
-  def interrupted_wait_until(deadline: float) -> None:
-    raise KeyboardInterrupt
-
-  with pytest.raises(KeyboardInterrupt):
-    play_sound(DISENGAGE_SOUND, set_buzzer=buzzer_writes.append, wait_until=interrupted_wait_until)
-  assert buzzer_writes == [True, False]
+def test_chopped_segment_toggles_at_note_pitch():
+  assert sound_edges((BuzzerSegment(0.01, 500, 0.),)) == [0.0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009]
