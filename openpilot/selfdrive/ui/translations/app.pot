@@ -195,10 +195,6 @@ msgstr ""
 msgid "EXPERIMENTAL MODE ON"
 msgstr ""
 
-#: openpilot/selfdrive/ui/widgets/exp_mode_button.py
-msgid "CHILL MODE ON"
-msgstr ""
-
 #: openpilot/selfdrive/ui/widgets/offroad_alerts.py
 msgid "Close"
 msgstr ""
@@ -786,6 +782,20 @@ msgstr ""
 
 #: openpilot/selfdrive/ui/layouts/settings/toggles.py
 msgid "Experimental Mode"
+msgstr ""
+
+#: openpilot/selfdrive/ui/layouts/settings/toggles.py
+#: openpilot/selfdrive/ui/mici/layouts/settings/toggles.py
+msgid "Experimental mode enables alpha-level features that are not ready for normal driving."
+msgstr ""
+
+#: openpilot/selfdrive/ui/widgets/exp_mode_button.py
+msgid "EXPERIMENTAL MODE OFF"
+msgstr ""
+
+#: openpilot/selfdrive/ui/layouts/settings/toggles.py
+#: openpilot/selfdrive/ui/mici/layouts/settings/toggles.py
+msgid "Normal driving is enabled by default."
 msgstr ""
 
 #: openpilot/selfdrive/ui/layouts/settings/toggles.py

@@ -6,7 +6,6 @@ from opendbc.car.structs import car
 from dataclasses import dataclass, field
 from openpilot.common.params import Params
 from openpilot.common.filter_simple import FirstOrderFilter
-from openpilot.common.model_geometry import VehicleFrameLine, geometry_to_vehicle_frame, read_camera_to_front, vehicle_to_camera_frame
 from openpilot.selfdrive.locationd.calibrationd import HEIGHT_INIT
 from openpilot.selfdrive.ui.ui_state import ui_state, UIStatus
 from openpilot.selfdrive.ui.mici.onroad import blend_colors
@@ -26,11 +25,7 @@ THROTTLE_COLORS = [
   rl.Color(114, 255, 92, 0),     # HSLF(112/360, 1.0, 0.68, 0.0)
 ]
 
-NO_THROTTLE_COLORS = [
-  rl.Color(242, 242, 242, 102), # HSLF(148/360, 0.0, 0.95, 0.4)
-  rl.Color(242, 242, 242, 89),  # HSLF(112/360, 0.0, 0.95, 0.35)
-  rl.Color(242, 242, 242, 0),   # HSLF(112/360, 0.0, 0.95, 0.0)
-]
+
 
 LANE_LINE_COLORS = {
   UIStatus.DISENGAGED: rl.Color(200, 200, 200, 255),
@@ -58,9 +53,6 @@ class ModelRenderer(Widget, ModelRendererSP):
     Widget.__init__(self)
     ModelRendererSP.__init__(self)
     self._longitudinal_control = False
-    self._experimental_mode = False
-    self._blend_filter = FirstOrderFilter(1.0, 0.25, 1 / gui_app.target_fps)
-    self._prev_allow_throttle = True
     self._lane_line_probs = np.zeros(4, dtype=np.float32)
     self._road_edge_stds = np.zeros(2, dtype=np.float32)
     self._lead_vehicles = [LeadVehicle(), LeadVehicle()]
@@ -85,8 +77,6 @@ class ModelRenderer(Widget, ModelRendererSP):
 
     self._counter = -1
     self._camera_offset = ui_state.params.get("CameraOffset", return_default=True)
-    self._camera_to_front = read_camera_to_front(ui_state.params)  # 安装偏移唯一读点（票 #6），每帧重读
-    self._raw_points_ctf: float | None = None  # raw_points 构建时用的安装偏移，变了须重建（见 _render）
 
     self._exp_gradient = Gradient(
       start=(0.0, 1.0),  # Bottom of path
@@ -110,7 +100,6 @@ class ModelRenderer(Widget, ModelRendererSP):
     if self._counter % 180 == 0:  # This runs at 60fps, so we query every 3 seconds
       self._camera_offset = ui_state.params.get("CameraOffset", return_default=True)
     self._counter += 1
-    self._camera_to_front = read_camera_to_front(ui_state.params)  # 每帧重读，保存即下一帧生效
 
     self._torque_filter.update(-ui_state.sm['carOutput'].actuatorsOutput.torque)
 
@@ -124,9 +113,6 @@ class ModelRenderer(Widget, ModelRendererSP):
       rect.x - CLIP_MARGIN, rect.y - CLIP_MARGIN, rect.width + 2 * CLIP_MARGIN, rect.height + 2 * CLIP_MARGIN
     )
 
-    # Update state
-    self._experimental_mode = sm['selfdriveState'].experimentalMode
-
     extrinsics_calibration = sm['extrinsicsCalibration']
     self._path_offset_z = extrinsics_calibration.height[0] if extrinsics_calibration.height else HEIGHT_INIT[0]
 
@@ -138,13 +124,10 @@ class ModelRenderer(Widget, ModelRendererSP):
     lead_one = radar_state.leadOne if radar_state else None
     render_lead_indicator = self._longitudinal_control and radar_state is not None
 
-    # Update model data when needed。安装偏移变了也要同帧重建 raw_points：raw_points
-    # 是按构建时的 ctf 换算的车体系，换算口每帧用当前值逆变换，两边不同帧会让车道
-    # 像素瞬时错位一个 Δctf。
+    # Update model data when needed
     model_updated = sm.updated['modelV2']
-    ctf_changed = self._camera_to_front != self._raw_points_ctf
-    if model_updated or ctf_changed or sm.updated['radarState'] or self._transform_dirty:
-      if model_updated or ctf_changed:
+    if model_updated or sm.updated['radarState'] or self._transform_dirty:
+      if model_updated:
         self._update_raw_points(model)
 
       path_x_array = self._path.raw_points[:, 0]
@@ -159,32 +142,25 @@ class ModelRenderer(Widget, ModelRendererSP):
     # Draw elements (hide when disengaged)
     if ui_state.status != UIStatus.DISENGAGED:
       self._draw_lane_lines()
-      self._draw_path(sm)
+      self._draw_path()
+      self.blendful.draw(self._rect)
 
     # if render_lead_indicator and radar_state:
     #   self._draw_lead_indicator()
 
   def _update_raw_points(self, model):
-    """Update raw 3D points from model data (车体系，几何解释权在 model_geometry)"""
-    geom = geometry_to_vehicle_frame(model, camera_to_front=self._camera_to_front)
-    self._raw_points_ctf = self._camera_to_front
+    """Update raw 3D points from model data"""
+    self._path.raw_points = np.array([model.position.x, np.array(model.position.y) + self._camera_offset, model.position.z], dtype=np.float32).T
 
-    self._path.raw_points = self._to_point_array(geom.path)
-    for i, lane_line in enumerate(geom.lane_lines):
-      self._lane_lines[i].raw_points = self._to_point_array(lane_line)
-    for i, road_edge in enumerate(geom.road_edges):
-      self._road_edges[i].raw_points = self._to_point_array(road_edge)
+    for i, lane_line in enumerate(model.laneLines):
+      self._lane_lines[i].raw_points = np.array([lane_line.x, np.array(lane_line.y) + self._camera_offset, lane_line.z], dtype=np.float32).T
+
+    for i, road_edge in enumerate(model.roadEdges):
+      self._road_edges[i].raw_points = np.array([road_edge.x, np.array(road_edge.y) + self._camera_offset, road_edge.z], dtype=np.float32).T
 
     self._lane_line_probs = np.array(model.laneLineProbs, dtype=np.float32)
     self._road_edge_stds = np.array(model.roadEdgeStds, dtype=np.float32)
     self._acceleration_x = np.array(model.acceleration.x, dtype=np.float32)
-
-  @staticmethod
-  def _to_point_array(line: VehicleFrameLine | None) -> np.ndarray:
-    """VehicleFrameLine → (N, 3) 车体系点阵；缺线/空线为空阵"""
-    if line is None or len(line.x) == 0:
-      return np.empty((0, 3), dtype=np.float32)
-    return np.array([line.x, line.y, line.z], dtype=np.float32).T
 
   def _update_leads(self, radar_state, path_x_array):
     """Update positions of lead vehicles"""
@@ -198,14 +174,12 @@ class ModelRenderer(Widget, ModelRendererSP):
 
         # Get z-coordinate from path at the lead vehicle position
         z = self._path.raw_points[idx, 2] if idx < len(self._path.raw_points) else 0.0
-        # dRel/yRel 与 raw_points 同为车体系（yRel 左正），换算口负责翻 y 与补偏移
-        point = self._map_to_screen(d_rel, y_rel, z + self._path_offset_z)
+        point = self._map_to_screen(d_rel, -y_rel + self._camera_offset, z + self._path_offset_z)
         if point:
           self._lead_vehicles[i] = self._update_lead_vehicle(d_rel, v_rel, point, self._rect)
 
   def _update_model(self, lead, path_x_array):
     """Update model visualization data based on model message"""
-    # 截断距离：车体系（与 raw_points、dRel 同帧）
     max_distance = np.clip(path_x_array[-1], MIN_DRAW_DISTANCE, MAX_DRAW_DISTANCE)
     max_idx = self._get_path_length_idx(self._lane_lines[0].raw_points[:, 0], max_distance)
 
@@ -221,6 +195,7 @@ class ModelRenderer(Widget, ModelRendererSP):
     # Update road edges using raw points
     for road_edge in self._road_edges:
       road_edge.projected_points = self._map_line_to_polygon(road_edge.raw_points, line_width_factor, 0.0, max_idx)
+    self.blendful.update(self, max_idx)
 
     # Update path using raw points
     if lead and lead.present:
@@ -231,12 +206,7 @@ class ModelRenderer(Widget, ModelRendererSP):
     self._acceleration_x_filter.update(soon_acceleration)
     self._acceleration_x_filter2.update(soon_acceleration)
 
-    # make path width wider/thinner when initially braking/accelerating
-    if self._experimental_mode and False:
-      high_pass_acceleration = self._acceleration_x_filter.x - self._acceleration_x_filter2.x
-      y_off = np.interp(high_pass_acceleration, [-1, 0, 1], [0.9 * 2, 0.9, 0.9 / 2])
-    else:
-      y_off = 0.9
+    y_off = 0.9
 
     max_idx = self._get_path_length_idx(path_x_array, max_distance)
     self._path.projected_points = self._map_line_to_polygon(
@@ -247,7 +217,7 @@ class ModelRenderer(Widget, ModelRendererSP):
 
   def _update_experimental_gradient(self):
     """Pre-calculate experimental mode gradient colors"""
-    if not self._experimental_mode:
+    if not self._longitudinal_control:
       return
 
     path_pts = self._path.projected_points + np.array([self._rect.x, self._rect.y], dtype=np.float32)
@@ -353,43 +323,23 @@ class ModelRenderer(Widget, ModelRendererSP):
       color = self._get_ll_color(float(1.0 - self._road_edge_stds[i]), float(self._lane_line_probs[i + 1]) < 0.25, i == 0)
       draw_polygon(self._rect, road_edge.projected_points + offset, color)
 
-  def _draw_path(self, sm):
-    """Draw path with dynamic coloring based on mode and throttle state."""
+  def _draw_path(self):
+    """Draw the planned path."""
     if not self._path.projected_points.size:
       return
-
-    allow_throttle = sm['longitudinalPlan'].allowThrottle or not self._longitudinal_control
-    self._blend_filter.update(int(allow_throttle))
 
     if ui_state.rainbow_path:
       self.rainbow_path.draw_rainbow_path(self._rect, self._path)
       return
 
     path_pts = self._path.projected_points + np.array([self._rect.x, self._rect.y], dtype=np.float32)
-
-    if self._experimental_mode:
-      # Draw with acceleration coloring
-      if ui_state.status == UIStatus.DISENGAGED:
-        draw_polygon(self._rect, path_pts, rl.Color(0, 0, 0, 90))
-      elif len(self._exp_gradient.colors) > 1:
-        draw_polygon(self._rect, path_pts, gradient=self._exp_gradient)
-      else:
-        draw_polygon(self._rect, path_pts, rl.Color(255, 255, 255, 30))
+    if ui_state.status == UIStatus.DISENGAGED:
+      draw_polygon(self._rect, path_pts, rl.Color(0, 0, 0, 90))
+    elif self._longitudinal_control and len(self._exp_gradient.colors) > 1:
+      draw_polygon(self._rect, path_pts, gradient=self._exp_gradient)
     else:
-      # Blend throttle/no throttle colors based on transition
-      blend_factor = round(self._blend_filter.x * 100) / 100
-      blended_colors = self._blend_colors(NO_THROTTLE_COLORS, THROTTLE_COLORS, blend_factor)
-      gradient = Gradient(
-        start=(0.0, 1.0),  # Bottom of path
-        end=(0.0, 0.0),  # Top of path
-        colors=blended_colors,
-        stops=[0.0, 0.5, 1.0],
-      )
-
-      if ui_state.status == UIStatus.DISENGAGED:
-        draw_polygon(self._rect, path_pts, rl.Color(0, 0, 0, 90))
-      else:
-        draw_polygon(self._rect, path_pts, gradient=gradient)
+      gradient = Gradient(start=(0.0, 1.0), end=(0.0, 0.0), colors=THROTTLE_COLORS, stops=[0.0, 0.5, 1.0])
+      draw_polygon(self._rect, path_pts, gradient=gradient)
 
   def _draw_lead_indicator(self):
     # Draw lead vehicles if available
@@ -409,10 +359,8 @@ class ModelRenderer(Widget, ModelRendererSP):
     return indices[-1] if indices.size > 0 else 0
 
   def _map_to_screen(self, in_x, in_y, in_z):
-    """Project a point in vehicle space to screen space"""
-    # 换算口（票 #5）：车体系 → 相机系（补回相机平移），CameraOffset 加在 y（右正）
-    cam_x, cam_y, cam_z = vehicle_to_camera_frame(in_x, in_y, in_z, self._camera_to_front)
-    input_pt = np.array([cam_x, cam_y + self._camera_offset, cam_z])
+    """Project a point in car space to screen space"""
+    input_pt = np.array([in_x, in_y, in_z])
     pt = self._car_space_transform @ input_pt
 
     if abs(pt[2]) < 1e-6:
@@ -427,17 +375,10 @@ class ModelRenderer(Widget, ModelRendererSP):
     return (x, y)
 
   def _map_line_to_polygon(self, line: np.ndarray, y_off: float, z_off: float, max_idx: int, allow_invert: bool = True) -> np.ndarray:
-    """Convert 3D line (车体系) to 2D polygon for rendering.
-
-    换算口（票 #5）：进透视矩阵前统一车体系 → 相机系（补回相机平移），
-    CameraOffset 加在 y（右正）。此后全程相机系，与切换前像素一致。
-    """
+    """Convert 3D line to 2D polygon for rendering."""
     if line.shape[0] == 0:
       return np.empty((0, 2), dtype=np.float32)
 
-    # 换算口：车体系 → 相机系（与 _map_to_screen 仅有的两处换算点）
-    cam_x, cam_y, cam_z = vehicle_to_camera_frame(line[:, 0], line[:, 1], line[:, 2], self._camera_to_front)
-    line = np.stack((cam_x, cam_y + self._camera_offset, cam_z), axis=1).astype(np.float32)
 
     # Slice points and filter non-negative x-coordinates
     points = line[:max_idx + 1]
@@ -509,18 +450,3 @@ class ModelRenderer(Widget, ModelRendererSP):
       int(rgb[2] * 255),
       int(a * 255)
     )
-
-  @staticmethod
-  def _blend_colors(begin_colors, end_colors, t):
-    if t >= 1.0:
-      return end_colors
-    if t <= 0.0:
-      return begin_colors
-
-    inv_t = 1.0 - t
-    return [rl.Color(
-      int(inv_t * start.r + t * end.r),
-      int(inv_t * start.g + t * end.g),
-      int(inv_t * start.b + t * end.b),
-      int(inv_t * start.a + t * end.a)
-    ) for start, end in zip(begin_colors, end_colors, strict=True)]

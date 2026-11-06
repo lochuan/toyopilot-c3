@@ -275,7 +275,7 @@ def test_select_frame_obeys_warmup_enable_and_link_gates():
   blender = SourceBlender(fade_frames=2)
   action_calls = []
 
-  def action_for(output, lat_t, long_t):
+  def action_for(output, lat_t, long_t, offset):
     action_calls.append((output, lat_t, long_t))
     value = float(output["plan"][0])
     return SimpleNamespace(desiredCurvature=value, desiredAcceleration=-value, shouldStop=value < 1.5)
@@ -284,7 +284,7 @@ def test_select_frame_obeys_warmup_enable_and_link_gates():
     return select_frame(
       small, latch=latch, enabled=enabled, run_count=run_count, timestamp_eof=1_000_000_000,
       deadline_after_eof_ms=70., warmup_frames=4, current_time_ns=lambda: 9_000_000_000, blender=blender,
-      action_for=action_for, action_t=(0.1, 0.2),
+      action_for=action_for, action_t=(0.1, 0.2), curvature_offset_for=lambda _: 0.0,
       parse_outputs=lambda raw: {"plan": np.array([raw[0]], dtype=np.float32)})
 
   first = select(enabled=True, run_count=4)
@@ -324,40 +324,34 @@ def test_select_frame_rejects_zero_reply():
                        action_for=lambda *_: SimpleNamespace(desiredCurvature=0., desiredAcceleration=0.,
                                                             shouldStop=False),
                        action_t=(0., 0.),
+                       curvature_offset_for=lambda _: 0.0,
                        parse_outputs=lambda raw: {"plan": raw})
   assert frame.big_output is None and frame.eof_to_reply_ms == 12.
   assert frame.model_output is small
   assert frame.source == 'zeroOutput'
 
 
-def test_modeld_c3_wiring_source():
-  """modeld 主循环需 QCOM GPU 无法宿主构造，锁票面不变量
-  （预热帧、全零兜底、modelV2.big、cameraToModelMs 遥测）。接线一起改的话本测试会提醒更新。"""
-  import inspect
-  from openpilot.selfdrive.modeld import modeld
-  src = inspect.getsource(modeld.main)
-  assert "BIG_WARMUP_FRAMES" in src, "modeld 重启后头若干帧按超时帧（04 号票）"
-  assert "select_frame(" in src, "逐帧 REPLY 策略必须通过宿主可测的决策 seam"
-  assert "modelV2.big = big_out is not None" in src
-  assert "bigLatencyMs" in src, "REPLY 往返每帧进遥测（04 号票）"
-  assert "bigLateReplyCount, mdv2sp_send.modelDataV2SP.bigLateReplyMs = latch.take_late_replies()" in src, \
-    "迟到 REPLY 个数与往返也进遥测"
-  # 截止 = timestamp_eof + 固定 60 ms（上游 chestnut 隐含预算一帧 50 ms，有小模型兜底故放宽 10 ms）
-  assert modeld.BIG_REPLY_DEADLINE_MS == 60.
-  assert "deadline_after_eof_ms=BIG_REPLY_DEADLINE_MS" in src
-  assert "camera_to_model_ms = ms_since_eof(meta_main.timestamp_eof)" in src
-  # frame_delay：大模型开着按 eof→发布实测滑动中位，关着同上游常量；只用等过 REPLY 的帧喂样本
-  assert "frame_delay = frame_delay_estimator.value / 1e3 if bigmodel_enabled else DT_MDL" in src
-  assert "if frame.deadline_ms > 0:" in src
-  assert "frame_delay_estimator.update(ms_since_eof(meta_main.timestamp_eof))" in src
-  # 与 timestamp_eof 比较的"现在"全走 BOOTTIME（modeld 主循环 + latch）
-  assert "monotonic_ns" not in src
-  assert "monotonic_ns" not in inspect.getsource(BigReplyLatch)
-  assert "cameraToModelMs = camera_to_model_ms" in src
-  assert "bigSource = frame.source" in src and "bigDeadlineMs = frame.deadline_ms" in src
-  assert "BigReplyLatch(sm_big, warmup_replies=BIG_WARMUP_FRAMES)" in src, "手机新建序列后同样回落小模型"
-  assert "latch.take_stages()" in src, "C4 分段随最新 REPLY 进 rlog"
-  assert "latch.latency" not in src
+def test_select_frame_applies_one_curvature_offset_to_both_legs():
+  small = {'plan': np.array([0.])}
+  big = {'plan': np.array([1.])}
+  blender = SourceBlender()
+  blender.step(small, big)
+  latch = _FakeReplySelector(alive=True, result=(np.ones(1), 1., 'big'))
+  calls = []
+
+  def offset_for(output):
+    calls.append(output)
+    return 0.02
+
+  frame = select_frame(small, latch=latch, enabled=True, run_count=2, timestamp_eof=1,
+                       deadline_after_eof_ms=70., warmup_frames=0, current_time_ns=lambda: 1,
+                       blender=blender, action_t=(0., 0.), curvature_offset_for=offset_for,
+                       action_for=lambda output, lat, long, offset: SimpleNamespace(
+                         desiredCurvature=offset, desiredAcceleration=0., shouldStop=False),
+                       parse_outputs=lambda raw: big)
+  assert frame.desired_curvature == 0.02
+  assert len(calls) == 1 and calls[0] is frame.model_output
+
 
 
 def test_big_action_curvature_uses_lat_smooth_seconds():

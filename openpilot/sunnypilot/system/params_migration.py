@@ -5,6 +5,7 @@ This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 """
 import json
+from pathlib import Path
 
 from openpilot.common.swaglog import cloudlog
 from openpilot.sunnypilot.selfdrive.car.sync_sunnylink_params import CAR_LIST_JSON_OUT
@@ -44,6 +45,13 @@ def _migrate_car_platform_bundle(_params):
 
   old_platform = bundle.get("platform")
   if not old_platform:
+    return
+  if old_platform == "TOYOTA_SIENNA_PATCHED" and bundle.get("name") == "Toyota Sienna 2021-26 PATCHED":
+    with open(CAR_LIST_JSON_OUT) as f:
+      car_list = json.load(f)
+    name = "Toyota Sienna 2021-27 PATCHED"
+    if name in car_list:
+      _params.put("CarPlatformBundle", {**car_list[name], "name": name}, block=True)
     return
 
   from opendbc.car.fingerprints import MIGRATION  # lazy: avoids heavy import at module level
@@ -86,6 +94,11 @@ def _migrate_tesla_mads_screen_button(_params):
 
 
 def run_migration(_params):
+  try:
+    Path(_params.get_param_path("DynamicExperimentalControl")).unlink(missing_ok=True)
+  except Exception as e:
+    cloudlog.exception(f"Error removing DynamicExperimentalControl: {e}")
+
   # migrate OnroadScreenOffBrightness
   if _params.get("OnroadScreenOffBrightnessMigrated") != ONROAD_BRIGHTNESS_MIGRATION_VERSION:
     try:

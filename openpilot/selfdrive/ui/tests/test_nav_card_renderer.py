@@ -1,6 +1,5 @@
 """Headless checks at the renderer interface; font and UI state are the test adapters."""
 import importlib
-import sys
 from types import SimpleNamespace
 
 import pyray as rl
@@ -25,22 +24,21 @@ def navigation(monkeypatch):
 
   state = SimpleNamespace(started=True, started_frame=10, is_metric=True, sm=Subscriber(subscriber))
   font = SimpleNamespace(texture=SimpleNamespace(id=1))
-  monkeypatch.setitem(sys.modules, "openpilot.selfdrive.ui.ui_state", SimpleNamespace(ui_state=state))
-  monkeypatch.setitem(sys.modules, "openpilot.system.ui.lib.application", SimpleNamespace(
-    gui_app=SimpleNamespace(font=lambda _: font), FontWeight=SimpleNamespace(BOLD=0, MEDIUM=1),
-    FONT_SCALE=1.16, font_fallback=lambda font: font))
-  monkeypatch.setitem(sys.modules, "openpilot.system.ui.lib.text_measure", SimpleNamespace(
-    measure_text_cached=lambda font, text, size, spacing=0: rl.Vector2(len(text) * size * .6, size * 1.16)))
-  monkeypatch.setitem(sys.modules, "openpilot.selfdrive.ui.sunnypilot.onroad.developer_ui", SimpleNamespace(get_bottom_dev_ui_offset=lambda: 0))
-  name = "openpilot.selfdrive.ui.sunnypilot.onroad.nav_card_renderer"
-  module = importlib.import_module(name)
+  module = importlib.import_module("openpilot.selfdrive.ui.sunnypilot.onroad.nav_card_renderer")
+  wrap_module = importlib.import_module("openpilot.system.ui.lib.wrap_text")
+  measure = lambda font, text, size, spacing=0: rl.Vector2(len(text) * size * .6, size * 1.16)
+  gui_app = SimpleNamespace(font=lambda _: font)
+  monkeypatch.setattr(module, "ui_state", state)
+  monkeypatch.setattr(module, "gui_app", gui_app)
+  monkeypatch.setattr(module, "measure_text_cached", measure)
+  monkeypatch.setattr(wrap_module, "measure_text_cached", measure)
+  monkeypatch.setattr(wrap_module, "font_fallback", lambda font: font)
+  monkeypatch.setattr(wrap_module, "_cache", {})
   clock = SimpleNamespace(now=10.0)
   monkeypatch.setattr(module.time, "monotonic", lambda: clock.now)
   renderer = module.NavCardRenderer()
   renderer.update()
-  yield renderer, state, message, clock
-  sys.modules.pop(name, None)
-  sys.modules.pop("openpilot.system.ui.lib.wrap_text", None)
+  return renderer, state, message, clock
 
 
 def test_guidance_expires_and_rejects_previous_drive(navigation):
@@ -100,42 +98,39 @@ def test_invalid_messages_and_missing_state_hide_guidance(navigation):
 
 def test_hidden_mode_button_cancels_touches_without_toggling(navigation, monkeypatch):
   _, state, _, _ = navigation
-  application = sys.modules["openpilot.system.ui.lib.application"]
-  application.MAX_TOUCH_SLOTS = 1
-  application.MousePos = application.MouseEvent = SimpleNamespace
-  application.gui_app.show_touches = False
-  application.gui_app.texture = lambda *args: SimpleNamespace(width=144, height=144)
+  button_module = importlib.import_module("openpilot.selfdrive.ui.onroad.exp_button")
+  widgets = importlib.import_module("openpilot.system.ui.widgets")
+  gui_app = SimpleNamespace(show_touches=False, texture=lambda *args: SimpleNamespace(width=144, height=144))
+  monkeypatch.setattr(button_module, "gui_app", gui_app)
+  monkeypatch.setattr(button_module, "ui_state", state)
+  monkeypatch.setattr(widgets, "gui_app", gui_app)
+  monkeypatch.setattr(widgets, "device", SimpleNamespace(awake=True))
   state.has_longitudinal_control = True
   state.sm["selfdriveState"] = SimpleNamespace(experimentalMode=False, engageable=True, enabled=True)
   changes, draws = [], []
   params = SimpleNamespace(get_bool=lambda key: True, put_bool=lambda key, value: changes.append((key, value)))
-  monkeypatch.setitem(sys.modules, "openpilot.common.params", SimpleNamespace(Params=lambda: params))
+  monkeypatch.setattr(button_module, "Params", lambda: params)
   monkeypatch.setattr(rl, "draw_circle", lambda *args: draws.append("button"))
   monkeypatch.setattr(rl, "draw_texture_ex", lambda *args: None)
-  try:
-    from openpilot.selfdrive.ui.onroad.exp_button import ExpButton
-    button = ExpButton(192, 144)
-    rect = rl.Rectangle(300, 81, 192, 192)
+  button = button_module.ExpButton(192, 144)
+  rect = rl.Rectangle(300, 81, 192, 192)
 
-    def frame(pressed=False, released=False):
-      application.gui_app.mouse_events = [SimpleNamespace(slot=0, pos=rl.Vector2(396, 177), left_pressed=pressed, left_released=released)]
-      button.render(rect)
+  def frame(pressed=False, released=False):
+    gui_app.mouse_events = [SimpleNamespace(slot=0, pos=rl.Vector2(396, 177), left_pressed=pressed, left_released=released)]
+    button.render(rect)
 
-    frame(pressed=True)
-    assert button.is_pressed
-    button.set_enabled(False)
-    draws.clear()
-    frame()
-    assert not draws and not button.is_pressed
-    frame(pressed=True)
-    frame(released=True)
-    assert not changes
-    button.set_enabled(True)
-    frame(released=True)
-    assert not changes
-    frame(pressed=True)
-    frame(released=True)
-    assert changes == [("ExperimentalMode", True)]
-  finally:
-    sys.modules.pop("openpilot.selfdrive.ui.onroad.exp_button", None)
-    sys.modules.pop("openpilot.system.ui.widgets", None)
+  frame(pressed=True)
+  assert button.is_pressed
+  button.set_enabled(False)
+  draws.clear()
+  frame()
+  assert not draws and not button.is_pressed
+  frame(pressed=True)
+  frame(released=True)
+  assert not changes
+  button.set_enabled(True)
+  frame(released=True)
+  assert not changes
+  frame(pressed=True)
+  frame(released=True)
+  assert changes == [("ExperimentalMode", True)]

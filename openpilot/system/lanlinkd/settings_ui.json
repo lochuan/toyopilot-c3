@@ -561,6 +561,12 @@
      "title": "模型行为",
      "items": [
       {
+       "key": "Blendful",
+       "widget": "toggle",
+       "title": "Blendful 车道居中修正 (Alpha)",
+       "description": "在模型自身转向上叠加轻微的车道居中修正，车道线越清晰修正越强；绕行障碍时让出。Alpha 功能，上游未在内置模型上验证。"
+      },
+      {
        "key": "LaneTurnDesire",
        "widget": "toggle",
        "title": "使用转向意愿"
@@ -638,26 +644,6 @@
        "key": "ExperimentalMode",
        "widget": "toggle",
        "title": "实验模式",
-       "enablement": [
-        {
-         "type": "capability",
-         "field": "has_longitudinal_control",
-         "equals": true
-        }
-       ]
-      },
-      {
-       "key": "DynamicExperimentalControl",
-       "widget": "toggle",
-       "title": "动态实验控制",
-       "description": "由模型决定何时使用 sunnypilot ACC 或端到端纵向控制。",
-       "visibility": [
-        {
-         "type": "capability",
-         "field": "has_longitudinal_control",
-         "equals": true
-        }
-       ],
        "enablement": [
         {
          "type": "capability",

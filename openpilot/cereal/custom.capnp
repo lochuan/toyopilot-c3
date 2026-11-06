@@ -196,7 +196,6 @@ struct ModelManagerSP @0xaedffd8f31e7b55d {
 }
 
 struct LongitudinalPlanSP @0xf35cc4560bbf6ec2 {
-  dec @0 :DynamicExperimentalControl;
   longitudinalPlanSource @1 :LongitudinalPlanSource;
   smartCruiseControl @2 :SmartCruiseControl;
   speedLimit @3 :SpeedLimit;
@@ -205,7 +204,11 @@ struct LongitudinalPlanSP @0xf35cc4560bbf6ec2 {
   events @6 :List(OnroadEventSP.Event);
   e2eAlerts @7 :E2eAlerts;
 
-  struct DynamicExperimentalControl {
+  deprecated :group {
+    dec @0 :DynamicExperimentalControlDEPRECATED;
+  }
+
+  struct DynamicExperimentalControlDEPRECATED {
     state @0 :DynamicExperimentalControlState;
     enabled @1 :Bool;
     active @2 :Bool;
@@ -476,6 +479,13 @@ struct ModelDataV2SP @0xa1680744031fdb2d {
   bigStages @9 :BigStageTimes;
   bigSource @10 :BigSource;     # 本帧用没用上大模型，没用上的原因
   bigDeadlineMs @11 :Float32;   # 本帧等 REPLY 的截止（相对 timestamp_eof，ms），0 = 没等
+  blendfulCurvature @12 :Float32;
+  blendfulTrust @13 :Float32;
+  modelCurvature @14 :Float32;
+  blendfulGoingAround @15 :Bool;
+  blendfulLeftProb @16 :Float32;
+  blendfulRightProb @17 :Float32;
+  blendfulLaneWidth @18 :Float32;
 
   # 以 road timestamp_eof 为零点沿关键路径首尾相接：capture..replyWait 之和 = bigmodeld 收到 REPLY − eof，
   # phoneTotalMs 是 REPLY 带回的手机 recv+prep+htp。

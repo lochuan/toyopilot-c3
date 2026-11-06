@@ -311,10 +311,6 @@ msgstr "更改"
 msgid "CHECK"
 msgstr "检查"
 
-#: openpilot/selfdrive/ui/widgets/exp_mode_button.py
-msgid "CHILL MODE ON"
-msgstr "安稳模式已开启"
-
 #: openpilot/selfdrive/ui/sunnypilot/layouts/settings/models.py
 msgid "CLEAR"
 msgstr "清除"
@@ -773,6 +769,10 @@ msgid "ETH"
 msgstr "ETH"
 
 #: openpilot/selfdrive/ui/widgets/exp_mode_button.py
+msgid "EXPERIMENTAL MODE OFF"
+msgstr "实验模式已关闭"
+
+#: openpilot/selfdrive/ui/widgets/exp_mode_button.py
 msgid "EXPERIMENTAL MODE ON"
 msgstr "实验模式已开启"
 
@@ -951,6 +951,16 @@ msgstr "退出停车设置模式"
 #: openpilot/selfdrive/ui/layouts/settings/toggles.py
 msgid "Experimental Mode"
 msgstr "实验模式"
+
+#: openpilot/selfdrive/ui/layouts/settings/toggles.py
+#: openpilot/selfdrive/ui/mici/layouts/settings/toggles.py
+msgid "Experimental mode enables alpha-level features that are not ready for normal driving."
+msgstr "实验模式启用尚未适用于正常驾驶的早期测试功能。"
+
+#: openpilot/selfdrive/ui/layouts/settings/toggles.py
+#: openpilot/selfdrive/ui/mici/layouts/settings/toggles.py
+msgid "Normal driving is enabled by default."
+msgstr "默认启用正常驾驶。"
 
 #: openpilot/selfdrive/ui/sunnypilot/layouts/settings/vehicle/brands/subaru.py
 msgid "Experimental feature to enable auto-resume during stop-and-go for certain supported Subaru platforms."
