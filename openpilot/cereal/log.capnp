@@ -572,6 +572,9 @@ struct PandaState @0xa7649e2575e4591e {
   controlsAllowedLateral @38 :Bool;
   controlsAllowedLongitudinal @39 :Bool;
 
+  nmiReset @40 :Bool;
+  hardfaultReset @41 :Bool;
+
   enum FaultStatus {
     none @0;
     faultTemp @1;
@@ -1237,6 +1240,7 @@ struct LongitudinalPlan @0xe00b5b3eba12876c {
   shouldStop @37: Bool;
   allowThrottle @38: Bool;
   allowBrake @39: Bool;
+  accelBoost @40 :Float32;
 
 
   solverExecutionTime @35 :Float32;

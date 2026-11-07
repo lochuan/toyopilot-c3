@@ -29,6 +29,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ControlsReady", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"CurrentBootlog", {PERSISTENT, STRING}},
     {"CurrentRoute", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, STRING}},
+    {"DisableDriverCameraIR", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"DisableLogging", {CLEAR_ON_MANAGER_START | CLEAR_ON_ONROAD_TRANSITION, BOOL}},
     {"DisablePowerDown", {PERSISTENT | BACKUP, BOOL, "1"}},  // C3XL 默认熄火后永不自动关机（用户 2026-10-14 拍板）
     {"DisableUpdates", {PERSISTENT | BACKUP, BOOL, "0"}},
@@ -65,7 +66,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"IsTestedBranch", {CLEAR_ON_MANAGER_START, BOOL}},
     {"JoystickDebugMode", {CLEAR_ON_MANAGER_START | CLEAR_ON_OFFROAD_TRANSITION, BOOL}},
     {"LanguageSetting", {PERSISTENT | BACKUP, STRING, "en"}},
-    {"LastGPSPosition", {PERSISTENT, STRING}},
+    {"LastGPSPosition", {PERSISTENT, BYTES}},
     {"LastManagerExitReason", {CLEAR_ON_MANAGER_START, STRING}},
     {"LastOffroadStatusPacket", {CLEAR_ON_MANAGER_START | CLEAR_ON_OFFROAD_TRANSITION, JSON}},
     {"LastAgnosPowerMonitorShutdown", {CLEAR_ON_MANAGER_START, STRING}},
@@ -127,6 +128,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"Version", {PERSISTENT, STRING}},
 
     // --- sunnypilot params --- //
+    {"AccelBoostSP", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"AutoLaneChangeBsmDelay", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"AutoLaneChangeTimer", {PERSISTENT | BACKUP, INT, "0"}},
     {"BlinkerLateralReengageDelay", {PERSISTENT | BACKUP, INT, "0"}},  // seconds
@@ -207,6 +209,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"TeslaMadsScreenButton", {PERSISTENT | BACKUP, INT, "0"}},
     {"ToyotaEnforceStockLongitudinal", {PERSISTENT | BACKUP, BOOL, "1"}},
     {"ToyotaStopAndGoHack", {PERSISTENT | BACKUP, BOOL, "0"}},
+    {"ToyotaTSS2Smooth", {PERSISTENT | BACKUP, BOOL, "0"}},
 
     {"BlindSpot", {PERSISTENT | BACKUP, BOOL, "0"}},
 
