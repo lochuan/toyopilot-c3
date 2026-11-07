@@ -37,7 +37,7 @@ class ChevronMetrics:
     """Check if dev UI should be rendered"""
     return ui_state.chevron_metrics != ChevronOptions.OFF and self._lead_status_alpha > 0.0
 
-  def _draw_lead(self, lead_data, lead_vehicle, v_ego: float, rect: rl.Rectangle):
+  def _draw_lead(self, lead_data, anchor, v_ego: float, rect: rl.Rectangle):
     """Draw lead vehicle status information (distance, speed, TTC)"""
     if not self.should_render():
       return
@@ -45,11 +45,7 @@ class ChevronMetrics:
     d_rel = lead_data.dRel
     v_rel = lead_data.vRel
 
-    if not lead_vehicle.chevron or len(lead_vehicle.chevron) < 2:
-      return
-
-    chevron_x = lead_vehicle.chevron[1][0]
-    chevron_y = lead_vehicle.chevron[1][1]
+    chevron_x, chevron_y = anchor
     sz = np.clip((25 * 30) / (d_rel / 3 + 30), 15.0, 30.0) * 2.35
 
     text_lines = self._build_text_lines(d_rel, v_rel, v_ego)
@@ -97,10 +93,10 @@ class ChevronMetrics:
     total_height = len(text_lines) * line_height
 
     # Adjust Y position if text would go off screen
-    if text_y + total_height > rect.height - margin:
-      y_max = min(chevron_y, rect.height - margin)
+    if text_y + total_height > rect.y + rect.height - margin:
+      y_max = min(chevron_y, rect.y + rect.height - margin)
       text_y = y_max - 15 - total_height
-      text_y = max(margin, text_y)
+      text_y = max(rect.y + margin, text_y)
 
     alpha = int(255 * self._lead_status_alpha)
     text_color = rl.Color(255, 255, 255, alpha)
@@ -108,7 +104,7 @@ class ChevronMetrics:
 
     for i, line in enumerate(text_lines):
       y = int(text_y + (i * line_height))
-      if y + line_height > rect.height - margin:
+      if y + line_height > rect.y + rect.height - margin:
         break
 
       # Measure actual text width for proper centering
@@ -117,14 +113,14 @@ class ChevronMetrics:
 
       # Center the text horizontally on the chevron
       x = int(chevron_x - text_width / 2)
-      x = int(np.clip(x, margin, rect.width - text_width - margin))
+      x = int(np.clip(x, rect.x + margin, rect.x + rect.width - text_width - margin))
 
       # Draw shadow
       rl.draw_text_ex(self._font, line, rl.Vector2(x + 2, y + 2), font_size, 0, shadow_color)
       # Draw text
       rl.draw_text_ex(self._font, line, rl.Vector2(x, y), font_size, 0, text_color)
 
-  def draw_lead_status(self, sm, radar_state, rect, lead_vehicles):
+  def draw_lead_status(self, sm, radar_state, rect, radar_anchors):
     lead_one = radar_state.leadOne
     lead_two = radar_state.leadTwo
 
@@ -138,10 +134,10 @@ class ChevronMetrics:
 
     v_ego = sm['carState'].vEgo
 
-    if has_lead_one and lead_vehicles[0].chevron:
-      self._draw_lead(lead_one, lead_vehicles[0], v_ego, rect)
+    if has_lead_one and radar_anchors[0] is not None:
+      self._draw_lead(lead_one, radar_anchors[0], v_ego, rect)
 
-    if has_lead_two and lead_vehicles[1].chevron:
+    if has_lead_two and radar_anchors[1] is not None:
       d_rel_diff = abs(lead_one.dRel - lead_two.dRel) if has_lead_one else float('inf')
       if d_rel_diff > 3.0:
-        self._draw_lead(lead_two, lead_vehicles[1], v_ego, rect)
+        self._draw_lead(lead_two, radar_anchors[1], v_ego, rect)

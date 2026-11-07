@@ -7,6 +7,7 @@ from openpilot.selfdrive.ui.ui_state import ui_state, UIStatus
 from openpilot.selfdrive.ui.onroad.alert_renderer import AlertRenderer
 from openpilot.selfdrive.ui.onroad.hud_renderer import HudRenderer
 from openpilot.selfdrive.ui.onroad.model_renderer import ModelRenderer
+from openpilot.selfdrive.ui.onroad.long_indicator import LongIndicator
 from openpilot.selfdrive.ui.sunnypilot.onroad.nav_card_renderer import NavCardRenderer
 from openpilot.selfdrive.ui.onroad.cameraview import CameraView
 from openpilot.system.ui.lib.application import gui_app
@@ -32,8 +33,8 @@ BORDER_COLORS = {
   **BORDER_COLORS_SP,
 }
 
-WIDE_CAM_MAX_SPEED = 10.0  # m/s (22 mph)
-ROAD_CAM_MIN_SPEED = 15.0  # m/s (34 mph)
+WIDE_CAM_MAX_SPEED = 5.0  # m/s (11 mph)
+ROAD_CAM_MIN_SPEED = 10.0  # m/s (22 mph)
 INF_POINT = np.array([1000.0, 0.0, 0.0])
 
 
@@ -53,6 +54,7 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
 
     self.model_renderer = ModelRenderer()
     self._hud_renderer = HudRenderer()
+    self._long_indicator = LongIndicator()
     self.alert_renderer = AlertRenderer()
     self._nav_card_renderer = NavCardRenderer()
 
@@ -92,6 +94,8 @@ class AugmentedRoadView(CameraView, AugmentedRoadViewSP):
     alert = self.alert_renderer.get_alert(ui_state.sm)
     self._hud_renderer.set_exp_button_enabled(alert is None)
     self._hud_renderer.render(self._content_rect)
+    self._long_indicator.set_should_draw(alert is None)
+    self._long_indicator.render(self._content_rect)
     self._nav_card_renderer.update()
     self._nav_card_renderer.render_icon(self._content_rect)
     if alert is None:
