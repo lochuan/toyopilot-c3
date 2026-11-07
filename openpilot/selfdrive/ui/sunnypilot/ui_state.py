@@ -33,7 +33,7 @@ class UIStateSP:
     self.is_sp_release: bool = self.params.get_bool("IsReleaseSpBranch")
     self.sm_services_ext = [
       "modelManagerSP", "selfdriveStateSP", "longitudinalPlanSP",
-      "gpsLocation", "lateralTorqueParameters", "carStateSP", "carParamsSP", "lateralDelay", "navStateSP", "modelDataV2SP"
+      "gpsLocation", "lateralTorqueParameters", "carStateSP", "carParamsSP", "lateralDelay", "navStateSP"
     ]
 
     self.screensaver = ScreenSaverSP(params=self.params)
@@ -96,14 +96,6 @@ class UIStateSP:
   @property
   def auto_onroad_brightness(self) -> bool:
     return self.onroad_brightness in (OnroadBrightness.AUTO, OnroadBrightness.AUTO_DARK)
-
-  @staticmethod
-  def lateral_active(_ui_state) -> bool:
-    if _ui_state.sm.valid["selfdriveStateSP"]:
-      mads = _ui_state.sm["selfdriveStateSP"].mads
-      if mads.available:
-        return mads.enabled and mads.state != MADSState.paused
-    return _ui_state.status.value in ("engaged", "lat_only")
 
   @staticmethod
   def update_status(ss, ss_sp, onroad_evt) -> str:
