@@ -220,6 +220,8 @@ class BluetoothClient:
     return self._desktop_fake
 
   def call(self, command: str, **payload: Any) -> dict[str, Any]:
+    if os.getenv("DISABLE_BLUETOOTH") == "1":
+      raise RuntimeError("Bluetooth is disabled for this release")
     fake = self._get_desktop_fake()
     if fake is not None:
       return fake.call(command, **payload)
@@ -244,6 +246,8 @@ class BluetoothClient:
     return result
 
   def status(self) -> BluetoothStatus:
+    if os.getenv("DISABLE_BLUETOOTH") == "1":
+      return BluetoothStatus(offroad=Params().get_bool("IsOffroad"))
     fake = self._get_desktop_fake()
     if fake is not None:
       return fake.status()
@@ -262,6 +266,8 @@ class BluetoothClient:
     return asdict(status)
 
   def set_power(self, enabled: bool) -> None:
+    if os.getenv("DISABLE_BLUETOOTH") == "1":
+      raise RuntimeError("Bluetooth is disabled for this release")
     fake = self._get_desktop_fake()
     if fake is not None:
       fake.call("set_power", enabled=enabled)

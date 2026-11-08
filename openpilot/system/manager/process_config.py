@@ -13,10 +13,10 @@ from openpilot.system.manager.process import PythonProcess, NativeProcess, Daemo
 from openpilot.common.hardware.hw import Paths
 
 def soundd_run(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return started or params.get_bool("BluetoothAudioTestActive")
+  return started or (os.getenv("DISABLE_BLUETOOTH") != "1" and params.get_bool("BluetoothAudioTestActive"))
 
 def bluetooth_enabled(started: bool, params: Params, CP: car.CarParams) -> bool:
-  return params.get_bool("BluetoothEnabled")
+  return os.getenv("DISABLE_BLUETOOTH") != "1" and params.get_bool("BluetoothEnabled")
 
 def iscar(started: bool, params: Params, CP: car.CarParams) -> bool:
   return started and not CP.notCar

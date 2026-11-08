@@ -18,19 +18,19 @@ export QCOM_PRIORITY=12
 # lean build: no driver monitoring, cabin camera unused
 export DISABLE_DRIVER=1
 
-if [ -z "$AGNOS_VERSION" ]; then
-  export AGNOS_VERSION="19.7-c3xl-dev-bt"
-fi
+export AGNOS_VERSION="20.2-c3xl"
+export AGNOS_ACCEPTED_VERSIONS="$AGNOS_VERSION"
 
-if [ -z "$AGNOS_ACCEPTED_VERSIONS" ]; then
-  export AGNOS_ACCEPTED_VERSIONS="19.7-c3xl-dev-bt"
-fi
+# Keep userspace Bluetooth disabled during the AGNOS 20.2-c3xl migration.
+export DISABLE_BLUETOOTH=1
 
 export STAGING_ROOT="/data/safe_staging"
 
 # Force Simplified Chinese UI on every boot.
 mkdir -p /data/params/d
 printf '%s' "zh-CHS" > /data/params/d/LanguageSetting
+printf '%s' "0" > /data/params/d/BluetoothEnabled
+printf '%s' "0" > /data/params/d/BluetoothAudioTestActive
 
 # C3XL exposes the system D-Bus socket at /run/dbus.
 if [ -S /run/dbus/system_bus_socket ]; then

@@ -197,6 +197,23 @@ def test_pairing_list_filters_anonymous_and_irrelevant_advertisements():
   assert show_pairing_device("00:11:22:33:44:55", "Known device", True, True, False, False, False, False)
 
 
+def test_release_disable_blocks_saved_enable_and_power_bootstrap(monkeypatch, tmp_path):
+  from openpilot.sunnypilot.system.bluetooth import protocol
+
+  params = FakeParams(BluetoothEnabled=True, IsOffroad=True)
+  monkeypatch.setenv("DISABLE_BLUETOOTH", "1")
+  monkeypatch.setattr(protocol, "Params", lambda: params)
+  client = BluetoothClient(socket_path=str(tmp_path / "bluetooth.sock"))
+
+  status = client.status()
+  assert not status.available and not status.enabled and not status.powered
+  assert status.offroad and not status.error
+  for operation in (lambda: client.set_power(True), lambda: client.call("set_power", enabled=True), client.start_scan):
+    with pytest.raises(RuntimeError, match="disabled for this release"):
+      operation()
+  assert params.values == {"BluetoothEnabled": True, "IsOffroad": True}
+
+
 def test_desktop_fake_bluetooth_is_stateful_and_interactive(monkeypatch, tmp_path):
   monkeypatch.setenv("SP_ALLOW_DESKTOP_FAKE_BLUETOOTH", "1")
   monkeypatch.setenv("SIMULATION", "1")

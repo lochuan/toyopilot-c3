@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import os
 import time
 import wave
 
@@ -156,7 +157,7 @@ class Soundd(QuietMode):
     if not self.bluetooth_supported or time.monotonic() - self.bluetooth_last_check < 1.0:
       return
     self.bluetooth_last_check = time.monotonic()
-    enabled = self.bluetooth_params.get_bool("BluetoothEnabled")
+    enabled = os.getenv("DISABLE_BLUETOOTH") != "1" and self.bluetooth_params.get_bool("BluetoothEnabled")
     if enabled == self.bluetooth_enabled:
       return
     self.bluetooth_enabled = enabled
