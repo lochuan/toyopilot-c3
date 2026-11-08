@@ -3,7 +3,7 @@
 # publish_release_from_device.sh — 一键发布编排器（Mac 侧）。
 #
 # 流程：Mac 单测 → scp device_release.sh → 设备侧 nohup 构建（/data/build 干净构建树 +
-# scons 全量，未变部分走 /data/scons_cache）→ 轮询 → 中继三步（取 relstage / push origin / 设备消费本机 relstage）→ 重启 → 上机验证。
+# scons 全量，未变部分走 /data/scons_cache）→ 轮询 → 中继三步（取 relstage / push origin / 设备从 origin 消费）→ 重启 → 上机验证。
 #
 # 用法: tools/release/publish_release_from_device.sh [--skip-tests] [--skip-smoke]
 #       末尾默认跑台架冒烟 tools/bench/smoke_after_build.sh（jungle 点火回放，验证核心进程 onroad 稳定）；
@@ -12,7 +12,6 @@
 #       SRC_BRANCH / RELEASE_BRANCH 透传给设备侧 device_release.sh
 #       （缺省 c3xl-lean / release）
 #       ADB_SERIAL=64460c90 走 adb 隧道（DEVICE=c4usb → localhost:2222）时设上，重启后自动重建转发
-#       源码经 Mac 本地 bundle 传入、发布从设备 /data/relstage 消费；车机全程不访问 Gitee HTTPS（家里出口对 Gitee smart HTTP 匿名请求返回 401）。
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
@@ -32,10 +31,6 @@ done
 SRC_SHA=$(git -C "$ROOT" rev-parse --verify "refs/heads/$SRC_BRANCH^{commit}")
 REMOTE_SRC_SHA=$(git -C "$ROOT" ls-remote origin "refs/heads/$SRC_BRANCH" | cut -f1)
 [ "$SRC_SHA" = "$REMOTE_SRC_SHA" ] || { echo "本地 $SRC_BRANCH ($SRC_SHA) 与 origin ($REMOTE_SRC_SHA) 不一致，先推送源码" >&2; exit 1; }
-WORK=$(mktemp -d /tmp/c3xl-publish.XXXXXX)
-trap 'rm -rf "$WORK"' EXIT
-DEVICE_SRC_BUNDLE=/tmp/c3xl-source-$SRC_SHA.bundle
-
 
 echo "[-] Mac 侧单测（--skip-tests 跳过）"
 if [ "$SKIP_TESTS" -eq 0 ]; then
@@ -45,16 +40,13 @@ if [ "$SKIP_TESTS" -eq 0 ]; then
 fi
 
 echo "[-] 推送设备侧发布脚本（构建树 /data/build 由它 checkout，release_lib.py 从构建树调用）"
-git -C "$ROOT" bundle create -q "$WORK/source.bundle" "refs/heads/$SRC_BRANCH"
-scp -q "$WORK/source.bundle" "$DEVICE:$DEVICE_SRC_BUNDLE"
 scp -q "$DIR/device_release.sh" "$DEVICE:/tmp/device_release.sh"
 
 echo "[-] 设备侧发布（nohup + 轮询；checkout 构建树 → scons 全量构建 → 剥离 → 打包）"
-ssh "$DEVICE" '(setsid nohup env SRC_BRANCH='"$SRC_BRANCH"' RELEASE_BRANCH='"$RELEASE_BRANCH"' REPO_URL='"$DEVICE_SRC_BUNDLE"' bash /tmp/device_release.sh > /tmp/release.log 2>&1 & echo $! > /tmp/release.pid)'
+ssh "$DEVICE" '(setsid nohup env SRC_BRANCH='"$SRC_BRANCH"' RELEASE_BRANCH='"$RELEASE_BRANCH"' bash /tmp/device_release.sh > /tmp/release.log 2>&1 & echo $! > /tmp/release.pid)'
 while ssh -o ConnectTimeout=10 "$DEVICE" 'kill -0 "$(cat /tmp/release.pid)" 2>/dev/null'; do
   sleep 20
 done
-ssh "$DEVICE" "rm -f $DEVICE_SRC_BUNDLE"
 if ! ssh "$DEVICE" 'grep -q "扁平树 stage 就绪" /tmp/release.log'; then
   ssh "$DEVICE" 'tail -30 /tmp/release.log' >&2 || true
   echo "设备端发布失败（见上方日志）" >&2
@@ -63,7 +55,7 @@ fi
 ssh "$DEVICE" "git -C /data/relstage log -1 --format=%B" | grep -qx "source commit: $SRC_BRANCH@$SRC_SHA" \
   || { echo "stage 源提交与 $SRC_SHA 不符，拒绝发布" >&2; exit 1; }
 
-echo "[-] 中继三步：取 relstage → push origin → 设备消费本机 relstage"
+echo "[-] 中继三步：取 relstage → push origin → 设备从 origin 消费"
 git fetch "ssh://$DEVICE/data/relstage" +"$RELEASE_BRANCH":refs/temp/device-release
 RELEASE_SHA=$(git rev-parse refs/temp/device-release)
 # 推 origin（gitee）；最多试 3 次，目标必须全限定：新分支远端不存在时 git 拒绝 DWIM 猜名
@@ -74,7 +66,7 @@ for _ in 1 2 3; do
 done
 [ "$pushed" -eq 1 ] || { echo "推送 origin 失败（3 次）" >&2; exit 1; }
 ssh "$DEVICE" "cd /data/openpilot && git remote set-url origin ${REPO_URL:-https://gitee.com/lochuan/toyo-pilot-c3-xl.git}"
-ssh "$DEVICE" "cd /data/openpilot && git fetch -q /data/relstage $RELEASE_BRANCH && test \"\$(git rev-parse FETCH_HEAD)\" = $RELEASE_SHA && git checkout -q --force -B $RELEASE_BRANCH FETCH_HEAD"
+ssh "$DEVICE" "cd /data/openpilot && git fetch -4 -q origin $RELEASE_BRANCH && test \"\$(git rev-parse FETCH_HEAD)\" = $RELEASE_SHA && git checkout -q --force -B $RELEASE_BRANCH FETCH_HEAD"
 
 echo "[-] 重启 + 上机验证"
 # 必须整机重启：systemctl restart comma 不清内核的 touch_count，开机累计 >4 次触摸时
