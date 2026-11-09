@@ -62,3 +62,14 @@ Development tools such as cabana, plotjuggler, and replay live in [openpilot/too
 ├── replay/             # Replay drives and mock openpilot services
 └── sim/                # Run openpilot in a simulator
 ```
+
+## C3XL 发布
+
+源码仓库为 `https://github.com/lochuan/toyopilot-c3.git`，默认源码分支为 `c3xl-lean`。Mac 上的 `origin` 指向该源码仓库，`gitcode` 指向 `git@gitcode.com:lochuan/toyopilot-c3.git`。
+
+在仓库根目录运行 `tools/release/publish_release_from_device.sh`。脚本先校验本地源码与 `origin` 一致，再由设备上的 `device_release.sh` 从 GitHub 拉取源码并构建扁平发布树。Mac 取回产物后只推送到 GitCode 的 `c3-release`，随后将设备运行树的 `origin` 改为 `https://gitcode.com/lochuan/toyopilot-c3.git`。设备拉取发布分支并校验 SHA 后切换、重启。
+
+`SRC_BRANCH` 和 `RELEASE_BRANCH` 可覆盖默认分支；自定义发布分支也只推送到 `gitcode`。`device_release.sh` 的 `REPO_URL` 仅指定构建源码仓库，不改变发布目标。`c3-release` 按正式发布分支分类。
+
+安装入口为 `tp.diaperastiko.top/c3x`，安装和后续更新均使用 GitCode。旧发布分支停止更新；已安装设备需通过该入口重装，不自动迁移。
+

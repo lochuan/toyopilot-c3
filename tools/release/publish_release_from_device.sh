@@ -3,14 +3,14 @@
 # publish_release_from_device.sh — 一键发布编排器（Mac 侧）。
 #
 # 流程：Mac 单测 → scp device_release.sh → 设备侧 nohup 构建（/data/build 干净构建树 +
-# scons 全量，未变部分走 /data/scons_cache）→ 轮询 → 中继三步（取 relstage / push origin / 设备从 origin 消费）→ 重启 → 上机验证。
+# scons 全量，未变部分走 /data/scons_cache）→ 轮询 → 中继三步（取 relstage / push gitcode / 设备从 GitCode 消费）→ 重启 → 上机验证。
 #
 # 用法: tools/release/publish_release_from_device.sh [--skip-tests] [--skip-smoke]
 #       末尾默认跑台架冒烟 tools/bench/smoke_after_build.sh（jungle 点火回放，验证核心进程 onroad 稳定）；
 #       没接 jungle 时自动跳过，--skip-smoke 强制跳过。
 # 环境: DEVICE=comma@10.0.0.44 可覆盖
 #       SRC_BRANCH / RELEASE_BRANCH 透传给设备侧 device_release.sh
-#       （缺省 c3xl-lean / release）
+#       （缺省 c3xl-lean / c3-release）
 #       ADB_SERIAL=64460c90 走 adb 隧道（DEVICE=c4usb → localhost:2222）时设上，重启后自动重建转发
 set -euo pipefail
 
@@ -18,7 +18,8 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
 ROOT="$(cd "$DIR/../.." && pwd)"
 DEVICE="${DEVICE:-comma@10.0.0.44}"
 SRC_BRANCH="${SRC_BRANCH:-c3xl-lean}"
-RELEASE_BRANCH="${RELEASE_BRANCH:-release}"
+RELEASE_BRANCH="${RELEASE_BRANCH:-c3-release}"
+RELEASE_REPO_URL=https://gitcode.com/lochuan/toyopilot-c3.git
 SKIP_TESTS=0
 SKIP_SMOKE=0
 for arg in "$@"; do
@@ -55,17 +56,17 @@ fi
 ssh "$DEVICE" "git -C /data/relstage log -1 --format=%B" | grep -qx "source commit: $SRC_BRANCH@$SRC_SHA" \
   || { echo "stage 源提交与 $SRC_SHA 不符，拒绝发布" >&2; exit 1; }
 
-echo "[-] 中继三步：取 relstage → push origin → 设备从 origin 消费"
+echo "[-] 中继三步：取 relstage → push gitcode → 设备从 GitCode 消费"
 git fetch "ssh://$DEVICE/data/relstage" +"$RELEASE_BRANCH":refs/temp/device-release
 RELEASE_SHA=$(git rev-parse refs/temp/device-release)
-# 推 origin（gitee）；最多试 3 次，目标必须全限定：新分支远端不存在时 git 拒绝 DWIM 猜名
+# 推 gitcode；最多试 3 次，目标必须全限定：新分支远端不存在时 git 拒绝 DWIM 猜名
 pushed=0
 for _ in 1 2 3; do
-  git push -f origin refs/temp/device-release:"refs/heads/$RELEASE_BRANCH" && { pushed=1; break; }
+  git push -f gitcode refs/temp/device-release:"refs/heads/$RELEASE_BRANCH" && { pushed=1; break; }
   sleep 5
 done
-[ "$pushed" -eq 1 ] || { echo "推送 origin 失败（3 次）" >&2; exit 1; }
-ssh "$DEVICE" "cd /data/openpilot && git remote set-url origin ${REPO_URL:-https://gitee.com/lochuan/toyo-pilot-c3-xl.git}"
+[ "$pushed" -eq 1 ] || { echo "推送 gitcode 失败（3 次）" >&2; exit 1; }
+ssh "$DEVICE" "cd /data/openpilot && git remote set-url origin $RELEASE_REPO_URL"
 ssh "$DEVICE" "cd /data/openpilot && git fetch -4 -q origin $RELEASE_BRANCH && test \"\$(git rev-parse FETCH_HEAD)\" = $RELEASE_SHA && git checkout -q --force -B $RELEASE_BRANCH FETCH_HEAD"
 
 echo "[-] 重启 + 上机验证"

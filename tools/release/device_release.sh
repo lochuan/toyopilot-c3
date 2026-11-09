@@ -13,15 +13,15 @@
 #
 # 分支参数（环境变量，缺省 = 主线发版）:
 #   SRC_BRANCH     源分支，缺省 c3xl-lean
-#   RELEASE_BRANCH 发布分支，缺省 release
-# 例: SRC_BRANCH=c3xl-lean RELEASE_BRANCH=release bash device_release.sh
+#   RELEASE_BRANCH 发布分支，缺省 c3-release
+# 例: SRC_BRANCH=c3xl-lean RELEASE_BRANCH=c3-release bash device_release.sh
 set -Eeuo pipefail   # -E：ERR trap 继承进阶段函数
 
 BUILD=/data/build
 STAGE=/data/relstage
-REPO_URL="${REPO_URL:-https://gitee.com/lochuan/toyo-pilot-c3-xl.git}"
+REPO_URL="${REPO_URL:-https://github.com/lochuan/toyopilot-c3.git}"
 SRC_BRANCH="${SRC_BRANCH:-c3xl-lean}"
-RELEASE_BRANCH="${RELEASE_BRANCH:-release}"
+RELEASE_BRANCH="${RELEASE_BRANCH:-c3-release}"
 # 默认 2GB 会按 mtime 淘汰掉 ~71M 的 driving pkl，下次发版白编 ~11 分钟
 SCONS_CACHE_LIMIT=8e9
 export PATH="/usr/local/venv/bin:$PATH"
