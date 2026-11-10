@@ -4,6 +4,14 @@ msgstr ""
 "Language: zh-CHT\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/vehicle/brands/toyota.py
+msgid "Aftermarket BSM"
+msgstr "副廠盲點監測（BSM）"
+
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/vehicle/brands/toyota.py
+msgid "Enable if your vehicle uses an aftermarket blind spot monitoring (BSM) system. This disables factory BSM monitoring in openpilot, including blind spot indicators and BSM-based lane change blocking. It does not decode aftermarket BSM signals. Leave off to retain factory BSM detection."
+msgstr "車輛使用副廠盲點監測（BSM）系統時可開啟。啟用後，openpilot 將停用原廠盲點監測，不再顯示盲點狀態，也不再依據 BSM 訊號阻止變換車道。此功能不會解碼副廠 BSM 訊號。預設關閉，保留原廠 BSM 識別。"
+
 #: openpilot/selfdrive/ui/layouts/settings/device.py
 msgid " Steering torque response calibration is complete."
 msgstr " 轉向扭矩回應校正完成。"

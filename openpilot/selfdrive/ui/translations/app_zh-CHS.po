@@ -1,9 +1,3 @@
-msgid "Enable if your vehicle uses an aftermarket blind spot monitoring (BSM) system. Factory BSM enablement will be disabled."
-msgstr "如果您的车辆使用副厂盲区监测（BSM）系统，请开启此开关。开启后将禁用原厂 BSM 功能。"
-
-msgid "Aftermarket BSM"
-msgstr "是否副厂BSM"
-
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -887,6 +881,14 @@ msgstr "请开启车辆的 LKAS 以启用"
 #: openpilot/selfdrive/ui/sunnypilot/layouts/settings/developer.py
 msgid "Enables or disables the GitHub runner service."
 msgstr "启用或禁用 GitHub runner 服务。"
+
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/vehicle/brands/toyota.py
+msgid "Aftermarket BSM"
+msgstr "副厂盲区监测（BSM）"
+
+#: openpilot/selfdrive/ui/sunnypilot/layouts/settings/vehicle/brands/toyota.py
+msgid "Enable if your vehicle uses an aftermarket blind spot monitoring (BSM) system. This disables factory BSM monitoring in openpilot, including blind spot indicators and BSM-based lane change blocking. It does not decode aftermarket BSM signals. Leave off to retain factory BSM detection."
+msgstr "车辆使用副厂盲区监测（BSM）系统时可开启。启用后，openpilot 将停用原厂盲区监测，不再显示盲区状态，也不再依据 BSM 信号阻止变道。此功能不会解码副厂 BSM 信号。默认关闭，保留原厂 BSM 识别。"
 
 #: openpilot/selfdrive/ui/sunnypilot/layouts/settings/vehicle/brands/toyota.py
 msgid "Enforce Factory Longitudinal Control"

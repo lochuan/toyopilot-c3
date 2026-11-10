@@ -90,6 +90,7 @@ def initialize_params(params) -> list[dict[str, Any]]:
 
   # toyota
   keys.extend([
+    "ToyotaAftermarketBsm",
     "ToyotaEnforceStockLongitudinal",
     "ToyotaStopAndGoHack",
     "ToyotaTSS2Smooth",

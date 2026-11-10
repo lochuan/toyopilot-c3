@@ -2084,6 +2084,18 @@
    "title": "丰田 / 雷克萨斯",
    "items": [
     {
+     "key": "ToyotaAftermarketBsm",
+     "widget": "toggle",
+     "needs_onroad_cycle": true,
+     "title": "副厂盲区监测（BSM）",
+     "description": "车辆使用副厂盲区监测（BSM）系统时可开启。启用后，openpilot 将停用原厂盲区监测，不再显示盲区状态，也不再依据 BSM 信号阻止变道。此功能不会解码副厂 BSM 信号。默认关闭，保留原厂 BSM 识别。",
+     "enablement": [
+      {
+       "type": "not_engaged"
+      }
+     ]
+    },
+    {
      "key": "ToyotaEnforceStockLongitudinal",
      "widget": "toggle",
      "needs_onroad_cycle": true,
