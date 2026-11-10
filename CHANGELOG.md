@@ -5,6 +5,8 @@ C3XL (unreleased)
 * Require AGNOS `20.2-c3xl` for startup and updates. Older AGNOS versions trigger an upgrade.
 * Sync all seven AGNOS images from [mr-one/openpilot commit 1b9a71f1937802fa18e6ec9d62fca55e632cf42d](https://jihulab.com/mr-one/openpilot/-/raw/1b9a71f1937802fa18e6ec9d62fca55e632cf42d/openpilot/common/hardware/comma/agnos.json).
 * Disable userspace Bluetooth for this release, including saved enable settings, the Bluetooth manager, audio routing, and UI or LAN API power requests.
+* LANLink groups navigation by task, adds descriptive feature tiles, and improves mobile spacing, text contrast, and keyboard-accessible menus.
+* LANLink shows retryable loading errors and stale-data timestamps, updates telemetry without delayed bar animations, and respects keyboard and reduced-motion preferences for press feedback.
 
 sunnypilot Version 2026.002.000 (2026-06-28)
 ========================
